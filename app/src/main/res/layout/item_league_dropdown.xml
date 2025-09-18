@@ -1,0 +1,45 @@
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content">
+
+    <TextView
+        android:id="@+id/tv_title"
+        style="@style/AlexandriaRegular.white.12sp"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        tools:text="Season" />
+
+    <com.google.android.material.textfield.TextInputLayout
+        android:id="@+id/til"
+        style="@style/Widget.Material3.TextInputLayout.FilledBox.ExposedDropdownMenu"
+        android:layout_width="wra"
+        android:layout_height="36dp"
+        android:layout_marginTop="4dp"
+        android:textColorHint="@color/white"
+        app:boxBackgroundColor="@color/electric_lime"
+        app:endIconDrawable="@drawable/ic_dropdown"
+        app:endIconTint="@color/white"
+        app:expandedHintEnabled="false"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/tv_title"
+        app:startIconCheckable="false"
+        app:startIconDrawable="@drawable/eredivisie"
+        app:startIconTint="@null"
+        tools:hint="20/25">
+
+        <AutoCompleteTextView
+            android:id="@+id/actv"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:dropDownHeight="wrap_content"
+            android:dropDownVerticalOffset="8dp"
+            android:importantForAutofill="no"
+            android:inputType="none"
+            android:textAppearance="@style/AlexandriaBold.white.14sp"
+            tools:ignore="labelFor" />
+
+    </com.google.android.material.textfield.TextInputLayout>
+</androidx.constraintlayout.widget.ConstraintLayout>
