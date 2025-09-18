@@ -12,6 +12,12 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.MyApplication">
         <activity
+            android:name="com.papa.fr.football.players.TeamPlayersActivity"
+            android:exported="false"
+            android:label="@string/app_name"
+            android:theme="@style/Theme.MyApplication" />
+
+        <activity
             android:name=".MainActivity"
             android:exported="true">
             <intent-filter>

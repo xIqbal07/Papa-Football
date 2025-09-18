@@ -5,20 +5,27 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import androidx.core.os.bundleOf
+import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
+import androidx.fragment.app.activityViewModels
+import androidx.recyclerview.widget.LinearLayoutManager
+import com.papa.fr.football.MainViewModel
 import com.papa.fr.football.R
 import com.papa.fr.football.databinding.FragmentMatchesListBinding
+import com.papa.fr.football.players.TeamPlayersActivity
 
 class MatchesListFragment : Fragment() {
 
     private var _binding: FragmentMatchesListBinding? = null
     private val binding: FragmentMatchesListBinding
         get() = requireNotNull(_binding)
+    private val viewModel: MainViewModel by activityViewModels()
+    private lateinit var teamsAdapter: TeamsAdapter
 
     override fun onCreateView(
         inflater: LayoutInflater,
         container: ViewGroup?,
-        savedInstanceState: Bundle?
+        savedInstanceState: Bundle?,
     ): View {
         _binding = FragmentMatchesListBinding.inflate(inflater, container, false)
         return binding.root
@@ -26,8 +33,21 @@ class MatchesListFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-        val tabLabel = requireArguments().getString(ARG_LABEL).orEmpty()
-        binding.tvPlaceholder.text = getString(R.string.matches_placeholder_format, tabLabel)
+        binding.tvPlaceholder.text = getString(R.string.matches_empty_placeholder)
+
+        teamsAdapter = TeamsAdapter { team ->
+            val leagueId = viewModel.selectedLeagueId.value ?: return@TeamsAdapter
+            startActivity(TeamPlayersActivity.createIntent(requireContext(), leagueId, team.id))
+        }
+
+        binding.rvTeams.layoutManager = LinearLayoutManager(requireContext())
+        binding.rvTeams.adapter = teamsAdapter
+
+        viewModel.teams.observe(viewLifecycleOwner) { teams ->
+            teamsAdapter.submitList(teams)
+            binding.rvTeams.isVisible = teams.isNotEmpty()
+            binding.tvPlaceholder.isVisible = teams.isEmpty()
+        }
     }
 
     override fun onDestroyView() {

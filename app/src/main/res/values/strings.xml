@@ -4,5 +4,12 @@
     <string name="matches_tab_future">Future</string>
     <string name="matches_tab_live">Live</string>
     <string name="matches_tab_past">Past</string>
-    <string name="matches_placeholder_format">This is the %1$s matches screen.</string>
+    <string name="matches_empty_placeholder">No teams available for this league yet.</string>
+    <string name="player_name_format">#%1$d %2$s</string>
+    <string name="player_age_format">%1$d y.o</string>
+    <string name="player_order_format">#%1$d</string>
+    <string name="players_empty">No player statistics available yet.</string>
+    <string name="player_stat_goals">Goals</string>
+    <string name="player_stat_assists">Assists</string>
+    <string name="player_stat_yellow_cards">Yellow cards</string>
 </resources>
