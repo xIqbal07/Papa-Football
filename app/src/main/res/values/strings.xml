@@ -11,7 +11,6 @@
     <string name="bottom_nav_teams">Teams</string>
     <string name="bottom_nav_standings">Standings</string>
     <string name="bottom_nav_settings">Settings</string>
-    <string name="placeholder_coming_soon">Coming soon: %1$s</string>
     <string name="matches_tab_future_label">Future matches</string>
     <string name="matches_tab_live_label">Live matches</string>
     <string name="matches_tab_past_label">Past matches</string>

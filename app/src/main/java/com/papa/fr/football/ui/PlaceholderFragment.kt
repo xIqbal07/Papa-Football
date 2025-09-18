@@ -26,7 +26,7 @@ class PlaceholderFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         val message = requireArguments().getString(ARG_MESSAGE).orEmpty()
-        binding.tvPlaceholderMessage.text = message
+        binding.tvPlaceholder.text = message
     }
 
     override fun onDestroyView() {
