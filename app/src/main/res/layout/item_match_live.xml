@@ -4,8 +4,6 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:layout_marginStart="16dp"
-    android:layout_marginEnd="16dp"
     android:layout_marginBottom="12dp"
     android:foreground="?android:attr/selectableItemBackground"
     app:cardBackgroundColor="@color/matches_card_background"
@@ -19,91 +17,51 @@
         android:layout_height="wrap_content"
         android:padding="16dp">
 
-        <TextView
-            android:id="@+id/tv_live_chip"
-            style="@style/AlexandriaBold.10sp.white"
+        <com.papa.fr.football.common.itemteam.ItemListTeam
+            android:id="@+id/ilt_home"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:background="@drawable/match_chip_live_background"
-            android:paddingHorizontal="12dp"
-            android:paddingVertical="4dp"
-            android:text="@string/matches_tab_live"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toTopOf="parent" />
+            app:layout_constraintTop_toTopOf="parent"
+            app:logo="@drawable/eredivisie"
+            app:title="Royal Vallecano" />
 
-        <TextView
-            android:id="@+id/tv_live_minute"
-            style="@style/AlexandriaRegular.10sp.white"
+        <com.papa.fr.football.common.itemteam.ItemListTeam
+            android:id="@+id/ilt_away"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:textColor="@color/matches_secondary_text"
-            app:layout_constraintBaseline_toBaselineOf="@id/tv_live_chip"
-            app:layout_constraintEnd_toEndOf="parent"
-            tools:text="Today 20:00" />
-
-        <TextView
-            android:id="@+id/tv_live_home"
-            style="@style/AlexandriaBold.14sp.white"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="16dp"
-            app:layout_constraintEnd_toStartOf="@id/tv_live_score"
+            android:layout_marginTop="12dp"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@id/tv_live_chip"
-            tools:text="Royal Vallecano" />
-
-        <TextView
-            android:id="@+id/tv_live_away"
-            style="@style/AlexandriaRegular.12sp.white"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="6dp"
-            app:layout_constraintEnd_toStartOf="@id/tv_live_score"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@id/tv_live_home"
-            tools:text="Real Betis" />
-
-        <TextView
-            android:id="@+id/tv_live_score"
-            style="@style/AlexandriaBold.18sp.white"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="12dp"
-            android:textColor="@color/matches_score_text"
-            app:layout_constraintBaseline_toBaselineOf="@id/tv_live_home"
-            app:layout_constraintEnd_toEndOf="parent"
-            tools:text="0-1" />
+            app:layout_constraintTop_toBottomOf="@id/ilt_home"
+            app:logo="@drawable/eredivisie"
+            app:title="Royal Vallecano" />
 
         <View
-            android:layout_width="0dp"
-            android:layout_height="1dp"
-            android:layout_marginTop="12dp"
-            android:background="@color/matches_divider"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@id/tv_live_score" />
+            android:id="@+id/v_line"
+            android:layout_width="2dp"
+            android:layout_height="0dp"
+            android:layout_marginEnd="80dp"
+            android:background="#2D4A63"
+            app:layout_constraintBottom_toBottomOf="@id/ilt_away"
+            app:layout_constraintEnd_toStartOf="@id/tv_home_status"
+            app:layout_constraintTop_toTopOf="@id/ilt_home" />
 
         <TextView
-            android:id="@+id/tv_live_time"
-            style="@style/AlexandriaRegular.12sp.white"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="12dp"
-            android:textColor="@color/matches_secondary_text"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@id/tv_live_score"
-            tools:text="55'" />
+            android:id="@+id/tv_home_status"
+            style="@style/AfacadBold.12sp.cyan"
+            app:layout_constraintBottom_toBottomOf="@id/ilt_home"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toTopOf="@id/ilt_home"
+            tools:text="Live" />
 
         <TextView
-            android:id="@+id/tv_live_status"
-            style="@style/AlexandriaBold.12sp.white"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="12dp"
-            android:text="Live"
+            android:id="@+id/tv_score"
+            style="@style/AfacadBold.12sp.cyan"
+            android:textColor="@color/white"
+            app:layout_constraintBottom_toBottomOf="@id/ilt_away"
             app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintTop_toBottomOf="@id/tv_live_score" />
-
+            app:layout_constraintTop_toTopOf="@id/ilt_away"
+            tools:text="0:1" />
     </androidx.constraintlayout.widget.ConstraintLayout>
 
 </com.google.android.material.card.MaterialCardView>

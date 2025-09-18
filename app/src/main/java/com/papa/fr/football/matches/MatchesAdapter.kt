@@ -55,18 +55,18 @@ class MatchesAdapter : ListAdapter<MatchUiModel, RecyclerView.ViewHolder>(DIFF_C
     ) : RecyclerView.ViewHolder(binding.root) {
 
         fun bind(item: MatchUiModel.Future) = with(binding) {
-            tvFutureDate.text = item.date
-            tvFutureHome.text = item.homeTeam
-            tvFutureAway.text = item.awayTeam
-            tvFutureTime.text = item.kickoffTime
-
-            val odds = item.odds
-            groupFutureOdds.isVisible = odds != null
-            odds?.let {
-                tvFutureOddsHome.text = it.home
-                tvFutureOddsDraw.text = it.draw
-                tvFutureOddsAway.text = it.away
-            }
+//            tvAwayStartTime.text = item.date
+//            tvFutureHome.text = item.homeTeam
+//            tvFutureAway.text = item.awayTeam
+//            tvFutureTime.text = item.kickoffTime
+//
+//            val odds = item.odds
+//            groupFutureOdds.isVisible = odds != null
+//            odds?.let {
+//                tvFutureOddsHome.text = it.home
+//                tvFutureOddsDraw.text = it.draw
+//                tvFutureOddsAway.text = it.away
+//            }
         }
     }
 
@@ -75,12 +75,12 @@ class MatchesAdapter : ListAdapter<MatchUiModel, RecyclerView.ViewHolder>(DIFF_C
     ) : RecyclerView.ViewHolder(binding.root) {
 
         fun bind(item: MatchUiModel.Live) = with(binding) {
-            tvLiveMinute.text = item.contextText
-            tvLiveHome.text = item.homeTeam
-            tvLiveAway.text = item.awayTeam
-            tvLiveScore.text = item.score
-            tvLiveTime.text = item.elapsed
-            tvLiveStatus.text = item.status
+//            tvLiveMinute.text = item.contextText
+//            tvLiveHome.text = item.homeTeam
+//            tvLiveAway.text = item.awayTeam
+//            tvLiveScore.text = item.score
+//            tvLiveTime.text = item.elapsed
+//            tvLiveStatus.text = item.status
         }
     }
 
@@ -89,12 +89,12 @@ class MatchesAdapter : ListAdapter<MatchUiModel, RecyclerView.ViewHolder>(DIFF_C
     ) : RecyclerView.ViewHolder(binding.root) {
 
         fun bind(item: MatchUiModel.Past) = with(binding) {
-            tvPastDate.text = item.date
-            tvPastHome.text = item.homeTeam
-            tvPastAway.text = item.awayTeam
-            tvPastScore.text = item.score
-            tvPastResult.text = item.resultLabel
-            tvPastStatus.text = item.status
+//            tvPastDate.text = item.date
+//            tvPastHome.text = item.homeTeam
+//            tvPastAway.text = item.awayTeam
+//            tvPastScore.text = item.score
+//            tvPastResult.text = item.resultLabel
+//            tvPastStatus.text = item.status
         }
     }
 
