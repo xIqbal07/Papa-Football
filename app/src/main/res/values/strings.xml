@@ -1,3 +1,8 @@
 <resources>
     <string name="app_name">Papa football</string>
+    <string name="matches_title">Matches</string>
+    <string name="matches_tab_future">Future</string>
+    <string name="matches_tab_live">Live</string>
+    <string name="matches_tab_past">Past</string>
+    <string name="matches_placeholder_format">This is the %1$s matches screen.</string>
 </resources>

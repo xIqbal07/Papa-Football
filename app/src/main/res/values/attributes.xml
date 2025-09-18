@@ -4,4 +4,8 @@
         <attr name="label" format="string" />
         <attr name="is_show_start_icon" format="boolean" />
     </declare-styleable>
+
+    <declare-styleable name="MatchesTabLayoutView">
+        <attr name="titleText" format="string" />
+    </declare-styleable>
 </resources>
