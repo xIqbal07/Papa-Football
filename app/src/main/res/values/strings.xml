@@ -16,4 +16,5 @@
     <string name="matches_tab_past_label">Past matches</string>
     <string name="bottom_nav_placeholder_message">The %1$s screen is coming soon.</string>
     <string name="season_load_error">Unable to load seasons. Please try again.</string>
+    <string name="placeholder_coming_soon">Coming soon: %1$s</string>
 </resources>

@@ -2,12 +2,14 @@ package com.papa.fr.football
 
 import android.os.Bundle
 import androidx.activity.enableEdgeToEdge
+import androidx.annotation.IdRes
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
+import androidx.fragment.app.commit
 import com.google.android.material.bottomnavigation.BottomNavigationView
 import com.papa.fr.football.databinding.ActivityMainBinding
-import com.papa.fr.football.presentation.navigation.BottomNavPlaceholderFragment
+import com.papa.fr.football.presentation.navigation.PlaceholderFragment
 import com.papa.fr.football.presentation.schedule.ScheduleFragment
 
 class MainActivity : AppCompatActivity() {
@@ -19,25 +21,6 @@ class MainActivity : AppCompatActivity() {
         enableEdgeToEdge()
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
-        selectedItemId = savedInstanceState?.getInt(STATE_SELECTED_ITEM) ?: R.id.menu_schedule
-
-        setupWindowInsets()
-        setupBottomNav(binding.bottomNavigation)
-
-        if (savedInstanceState == null) {
-            binding.bottomNavigation.selectedItemId = selectedItemId
-        } else {
-            navigateTo(selectedItemId)
-            binding.bottomNavigation.selectedItemId = selectedItemId
-        }
-    }
-
-    override fun onSaveInstanceState(outState: Bundle) {
-        super.onSaveInstanceState(outState)
-        outState.putInt(STATE_SELECTED_ITEM, selectedItemId)
-    }
-
-    private fun setupWindowInsets() {
         ViewCompat.setOnApplyWindowInsetsListener(binding.main) { v, insets ->
             val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
             v.setPadding(systemBars.left, systemBars.top, systemBars.right, 0)
@@ -48,49 +31,85 @@ class MainActivity : AppCompatActivity() {
             v.setPadding(v.paddingLeft, v.paddingTop, v.paddingRight, systemBars.bottom)
             insets
         }
+
+        selectedItemId = savedInstanceState?.getInt(KEY_SELECTED_ITEM) ?: R.id.menu_schedule
+        setupBottomNav(binding.bottomNavigation)
+        if (savedInstanceState == null) {
+            navigateTo(selectedItemId)
+        }
+        binding.bottomNavigation.selectedItemId = selectedItemId
     }
 
     private fun setupBottomNav(bottomNav: BottomNavigationView) {
         bottomNav.setOnItemSelectedListener { item ->
+            if (selectedItemId == item.itemId) {
+                return@setOnItemSelectedListener true
+            }
+
             val handled = navigateTo(item.itemId)
             if (handled) {
                 selectedItemId = item.itemId
             }
             handled
         }
-        bottomNav.setOnItemReselectedListener { /* no-op */ }
     }
 
-    private fun navigateTo(itemId: Int): Boolean {
-        val tag = itemId.toString()
-        val fragmentManager = supportFragmentManager
-        val transaction = fragmentManager.beginTransaction()
-
-        fragmentManager.fragments
-            .filter { it.id == R.id.fragment_container }
-            .forEach { transaction.hide(it) }
-
-        var fragment = fragmentManager.findFragmentByTag(tag)
-        if (fragment == null) {
-            fragment = when (itemId) {
-                R.id.menu_schedule -> ScheduleFragment()
-                R.id.menu_highlights -> BottomNavPlaceholderFragment.newInstance(getString(R.string.bottom_nav_highlights))
-                R.id.menu_teams -> BottomNavPlaceholderFragment.newInstance(getString(R.string.bottom_nav_teams))
-                R.id.menu_standings -> BottomNavPlaceholderFragment.newInstance(getString(R.string.bottom_nav_standings))
-                R.id.menu_settings -> BottomNavPlaceholderFragment.newInstance(getString(R.string.bottom_nav_settings))
-                else -> return false
+    private fun navigateTo(@IdRes itemId: Int): Boolean {
+        val (tag, fragmentProvider) = when (itemId) {
+            R.id.menu_schedule -> ScheduleFragment.TAG to { ScheduleFragment() }
+            R.id.menu_highlights -> PlaceholderFragment.tagFor(itemId) to {
+                PlaceholderFragment.newInstance(
+                    getString(
+                        R.string.placeholder_coming_soon,
+                        getString(R.string.bottom_nav_highlights)
+                    )
+                )
             }
-            transaction.add(R.id.fragment_container, fragment, tag)
-        } else {
-            transaction.show(fragment)
+
+            R.id.menu_teams -> PlaceholderFragment.tagFor(itemId) to {
+                PlaceholderFragment.newInstance(
+                    getString(
+                        R.string.placeholder_coming_soon,
+                        getString(R.string.bottom_nav_teams)
+                    )
+                )
+            }
+
+            R.id.menu_standings -> PlaceholderFragment.tagFor(itemId) to {
+                PlaceholderFragment.newInstance(
+                    getString(
+                        R.string.placeholder_coming_soon,
+                        getString(R.string.bottom_nav_standings)
+                    )
+                )
+            }
+
+            R.id.menu_settings -> PlaceholderFragment.tagFor(itemId) to {
+                PlaceholderFragment.newInstance(
+                    getString(
+                        R.string.placeholder_coming_soon,
+                        getString(R.string.bottom_nav_settings)
+                    )
+                )
+            }
+
+            else -> return false
         }
 
-        transaction.setReorderingAllowed(true)
-        transaction.commit()
+        val fragment = supportFragmentManager.findFragmentByTag(tag) ?: fragmentProvider()
+        supportFragmentManager.commit {
+            setReorderingAllowed(true)
+            replace(R.id.fragment_container, fragment, tag)
+        }
         return true
     }
 
+    override fun onSaveInstanceState(outState: Bundle) {
+        super.onSaveInstanceState(outState)
+        outState.putInt(KEY_SELECTED_ITEM, selectedItemId)
+    }
+
     companion object {
-        private const val STATE_SELECTED_ITEM = "state_selected_item"
+        private const val KEY_SELECTED_ITEM = "key_selected_item"
     }
 }

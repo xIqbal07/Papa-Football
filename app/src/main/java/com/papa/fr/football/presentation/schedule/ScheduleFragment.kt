@@ -114,4 +114,8 @@ class ScheduleFragment : Fragment() {
         super.onDestroyView()
         _binding = null
     }
+
+    companion object {
+        const val TAG = "ScheduleFragment"
+    }
 }
