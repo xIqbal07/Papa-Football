@@ -14,6 +14,7 @@ import com.google.android.material.tabs.TabLayoutMediator
 import com.papa.fr.football.R
 import com.papa.fr.football.databinding.ItemMatchesTabBinding
 import com.papa.fr.football.databinding.ViewMatchesTabLayoutBinding
+import androidx.core.content.withStyledAttributes
 
 class MatchesTabLayoutView @JvmOverloads constructor(
     context: Context,
@@ -26,11 +27,11 @@ class MatchesTabLayoutView @JvmOverloads constructor(
     private var pageChangeCallback: ViewPager2.OnPageChangeCallback? = null
 
     init {
-        val typedArray = context.obtainStyledAttributes(attrs, R.styleable.MatchesTabLayoutView, defStyleAttr, 0)
-        val titleText = typedArray.getString(R.styleable.MatchesTabLayoutView_titleText)
-            ?: context.getString(R.string.matches_title)
-        binding.tvMatchesLabel.text = titleText
-        typedArray.recycle()
+        context.withStyledAttributes(attrs, R.styleable.MatchesTabLayoutView, defStyleAttr, 0) {
+            val titleText = getString(R.styleable.MatchesTabLayoutView_titleText)
+                ?: context.getString(R.string.matches_title)
+            binding.tvMatchesLabel.text = titleText
+        }
         configureTabLayout()
     }
 
@@ -105,7 +106,7 @@ class MatchesTabLayoutView @JvmOverloads constructor(
             val textColorRes = if (isSelected) {
                 R.color.matches_tab_selected_text
             } else {
-                R.color.matches_tab_unselected_text
+                R.color.white
             }
             tabBinding.tabRoot.background = ContextCompat.getDrawable(context, backgroundRes)
             tabBinding.tvTabTitle.setTextColor(ContextCompat.getColor(context, textColorRes))
