@@ -7,26 +7,66 @@
         <item name="android:fontFamily">@font/alexandria_regular</item>
     </style>
 
+    <style name="AfacadRegular" parent="TextAppearance.AppCompat.Body1">
+        <item name="android:layout_width">wrap_content</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:fontFamily">@font/afacad_regular</item>
+    </style>
+
+    <style name="AfacadBold" parent="TextAppearance.AppCompat.Headline">
+        <item name="android:layout_width">wrap_content</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:fontFamily">@font/afacad_bold</item>
+    </style>
+
     <style name="AlexandriaBold" parent="TextAppearance.AppCompat.Headline">
         <item name="android:layout_width">wrap_content</item>
         <item name="android:layout_height">wrap_content</item>
         <item name="android:fontFamily">@font/alexandria_bold</item>
     </style>
 
+    <style name="AfacadRegular.white" parent="AfacadRegular">
+        <item name="android:textColor">@color/white</item>
+    </style>
+
     <style name="AlexandriaRegular.white" parent="AlexandriaRegular">
         <item name="android:textColor">@color/white</item>
+    </style>
+
+    <style name="AfacadBold.cyan" parent="AfacadBold">
+        <item name="android:textColor">@color/cyan</item>
     </style>
 
     <style name="AlexandriaBold.white" parent="AlexandriaBold">
         <item name="android:textColor">@color/white</item>
     </style>
 
+    <style name="AfacadRegular.16sp.white" parent="AfacadRegular.white">
+        <item name="android:textSize">16sp</item>
+    </style>
+
+    <style name="AlexandriaRegular.10sp.white" parent="AlexandriaRegular.white">
+        <item name="android:textSize">10sp</item>
+    </style>
+
     <style name="AlexandriaRegular.12sp.white" parent="AlexandriaRegular.white">
         <item name="android:textSize">12sp</item>
     </style>
 
+    <style name="AfacadBold.12sp.cyan" parent="AfacadBold.cyan">
+        <item name="android:textSize">10sp</item>
+    </style>
+
+    <style name="AlexandriaBold.10sp.white" parent="AlexandriaBold.white">
+        <item name="android:textSize">10sp</item>
+    </style>
+
     <style name="AlexandriaBold.12sp.white" parent="AlexandriaBold.white">
         <item name="android:textSize">12sp</item>
+    </style>
+
+    <style name="AlexandriaBold.18sp.white" parent="AlexandriaBold.white">
+        <item name="android:textSize">18sp</item>
     </style>
 
     <style name="AlexandriaBold.14sp.white" parent="AlexandriaBold.white">

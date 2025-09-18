@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="utf-8"?>
+<com.google.android.material.card.MaterialCardView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginBottom="12dp"
+    android:foreground="?android:attr/selectableItemBackground"
+    app:cardBackgroundColor="@color/matches_card_background"
+    app:cardCornerRadius="12dp"
+    app:cardElevation="0dp"
+    app:strokeColor="@color/matches_card_border"
+    app:strokeWidth="1dp">
+
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:padding="16dp">
+
+        <com.papa.fr.football.common.itemteam.ItemListTeam
+            android:id="@+id/ilt_home"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            app:active="true"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            app:logo="@drawable/eredivisie"
+            app:title="Royal Vallecano" />
+
+        <com.papa.fr.football.common.itemteam.ItemListTeam
+            android:id="@+id/ilt_away"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/ilt_home"
+            app:logo="@drawable/eredivisie"
+            app:title="Royal Vallecano" />
+
+        <View
+            android:id="@+id/v_line"
+            android:layout_width="2dp"
+            android:layout_height="0dp"
+            android:layout_marginEnd="80dp"
+            android:background="#2D4A63"
+            app:layout_constraintBottom_toBottomOf="@id/ilt_away"
+            app:layout_constraintEnd_toStartOf="@id/tv_home_start_time"
+            app:layout_constraintTop_toTopOf="@id/ilt_home" />
+
+        <TextView
+            android:id="@+id/tv_home_start_time"
+            style="@style/AfacadBold.12sp.cyan"
+            android:textColor="@color/white"
+            app:layout_constraintBottom_toBottomOf="@id/ilt_home"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toTopOf="@id/ilt_home"
+            tools:text="01.09.2025" />
+
+        <TextView
+            android:id="@+id/tv_away_start_time"
+            style="@style/AfacadBold.12sp.cyan"
+            android:textColor="@color/white"
+            app:layout_constraintBottom_toBottomOf="@id/ilt_away"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toTopOf="@id/ilt_away"
+            tools:text="2:1" />
+    </androidx.constraintlayout.widget.ConstraintLayout>
+
+</com.google.android.material.card.MaterialCardView>

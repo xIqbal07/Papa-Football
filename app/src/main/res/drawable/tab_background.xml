@@ -1,7 +1,7 @@
 <selector xmlns:android="http://schemas.android.com/apk/res/android">
     <item android:state_selected="true">
         <shape android:shape="rectangle">
-            <solid android:color="@color/matches_tab_selected_background" />
+            <solid android:color="@color/cyan" />
             <corners android:radius="4dp" />
         </shape>
     </item>
