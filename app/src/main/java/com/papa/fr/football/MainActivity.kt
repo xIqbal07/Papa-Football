@@ -2,17 +2,19 @@ package com.papa.fr.football
 
 import android.os.Bundle
 import androidx.activity.enableEdgeToEdge
+import androidx.annotation.IdRes
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
+import androidx.fragment.app.commit
 import com.google.android.material.bottomnavigation.BottomNavigationView
-import com.papa.fr.football.common.matches.MatchesTabLayoutView
 import com.papa.fr.football.databinding.ActivityMainBinding
-import com.papa.fr.football.matches.MatchesListFragment
-import com.papa.fr.football.matches.MatchesTabType
+import com.papa.fr.football.schedule.ScheduleFragment
+import com.papa.fr.football.ui.PlaceholderFragment
 
 class MainActivity : AppCompatActivity() {
     private lateinit var binding: ActivityMainBinding
+    private var selectedItemId: Int = R.id.menu_schedule
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -30,34 +32,68 @@ class MainActivity : AppCompatActivity() {
             insets
         }
 
-        setupMatchesTabs()
+        selectedItemId = savedInstanceState?.getInt(KEY_SELECTED_ITEM) ?: R.id.menu_schedule
         setupBottomNav(binding.bottomNavigation)
-    }
-
-    private fun setupMatchesTabs() {
-        binding.matchesTabs.setupWith(
-            fragmentActivity = this,
-            tabs = listOf(
-                MatchesTabLayoutView.TabItem(getString(R.string.matches_tab_future)) {
-                    MatchesListFragment.newInstance(MatchesTabType.FUTURE)
-                },
-                MatchesTabLayoutView.TabItem(getString(R.string.matches_tab_live)) {
-                    MatchesListFragment.newInstance(MatchesTabType.LIVE)
-                },
-                MatchesTabLayoutView.TabItem(getString(R.string.matches_tab_past)) {
-                    MatchesListFragment.newInstance(MatchesTabType.PAST)
-                }
-            )
-        )
+        if (savedInstanceState == null) {
+            navigateTo(selectedItemId)
+        }
+        binding.bottomNavigation.selectedItemId = selectedItemId
     }
 
     private fun setupBottomNav(bottomNav: BottomNavigationView) {
-//        bottomNav.setOnItemSelectedListener { item ->
-//            when (item.itemId) {
-//                R.id.menu_schedule -> true
-//                else -> false
-//            }
-//        }
-        bottomNav.selectedItemId = R.id.menu_schedule
+        bottomNav.setOnItemSelectedListener { item ->
+            if (selectedItemId == item.itemId) {
+                return@setOnItemSelectedListener true
+            }
+
+            val handled = navigateTo(item.itemId)
+            if (handled) {
+                selectedItemId = item.itemId
+            }
+            handled
+        }
+    }
+
+    private fun navigateTo(@IdRes itemId: Int): Boolean {
+        val (tag, fragmentProvider) = when (itemId) {
+            R.id.menu_schedule -> ScheduleFragment.TAG to { ScheduleFragment() }
+            R.id.menu_highlights -> PlaceholderFragment.tagFor(itemId) to {
+                PlaceholderFragment.newInstance(
+                    getString(R.string.placeholder_coming_soon, getString(R.string.bottom_nav_highlights))
+                )
+            }
+            R.id.menu_teams -> PlaceholderFragment.tagFor(itemId) to {
+                PlaceholderFragment.newInstance(
+                    getString(R.string.placeholder_coming_soon, getString(R.string.bottom_nav_teams))
+                )
+            }
+            R.id.menu_standings -> PlaceholderFragment.tagFor(itemId) to {
+                PlaceholderFragment.newInstance(
+                    getString(R.string.placeholder_coming_soon, getString(R.string.bottom_nav_standings))
+                )
+            }
+            R.id.menu_settings -> PlaceholderFragment.tagFor(itemId) to {
+                PlaceholderFragment.newInstance(
+                    getString(R.string.placeholder_coming_soon, getString(R.string.bottom_nav_settings))
+                )
+            }
+            else -> return false
+        }
+
+        val fragment = supportFragmentManager.findFragmentByTag(tag) ?: fragmentProvider()
+        supportFragmentManager.commit {
+            setReorderingAllowed(true)
+            replace(R.id.fragment_container, fragment, tag)
+        }
+        return true
+    }
+
+    override fun onSaveInstanceState(outState: Bundle) {
+        super.onSaveInstanceState(outState)
+        outState.putInt(KEY_SELECTED_ITEM, selectedItemId)
+    }
+
+    companion object {
+        private const val KEY_SELECTED_ITEM = "key_selected_item"
     }
 }
