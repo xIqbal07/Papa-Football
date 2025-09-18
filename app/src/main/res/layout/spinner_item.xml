@@ -8,7 +8,7 @@
 
     <TextView
         android:id="@+id/title"
-        style="@style/AlexandriaRegular.white.12sp"
+        style="@style/AlexandriaRegular.12sp.white"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
         tools:text="Season" />

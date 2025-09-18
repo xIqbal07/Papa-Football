@@ -6,7 +6,7 @@
 
     <TextView
         android:id="@+id/tv_title"
-        style="@style/AlexandriaRegular.white.12sp"
+        style="@style/AlexandriaRegular.12sp.white"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
         tools:text="Season" />
@@ -38,7 +38,7 @@
             android:dropDownVerticalOffset="8dp"
             android:importantForAutofill="no"
             android:inputType="none"
-            android:textAppearance="@style/AlexandriaBold.white.14sp"
+            android:textAppearance="@style/AlexandriaBold.14sp.white"
             tools:ignore="labelFor" />
 
     </com.google.android.material.textfield.TextInputLayout>

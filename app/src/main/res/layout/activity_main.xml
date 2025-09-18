@@ -37,7 +37,7 @@
         style="@style/Widget.MaterialComponents.Button"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:textAppearance="@style/AlexandriaBold.white.12sp"
+        android:textAppearance="@style/AlexandriaBold.12sp.white"
         android:textColor="@color/white"
         app:cornerRadius="4dp"
         app:icon="@drawable/ic_refresh"
