@@ -12,6 +12,7 @@ class SeasonRepositoryImpl(
         return apiService
             .getUniqueTournamentSeasons(uniqueTournamentId)
             .data
+            .take(5)
             .map { it.toDomain() }
     }
 }

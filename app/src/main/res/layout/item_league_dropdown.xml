@@ -1,7 +1,7 @@
 <androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
-    android:layout_width="wrap_content"
+    android:layout_width="match_parent"
     android:layout_height="wrap_content">
 
     <TextView
@@ -14,16 +14,18 @@
     <com.google.android.material.textfield.TextInputLayout
         android:id="@+id/til"
         style="@style/Widget.Material3.TextInputLayout.FilledBox.ExposedDropdownMenu"
-        android:layout_width="wrap_content"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="4dp"
-        android:minHeight="36dp"
+        android:textAppearance="@style/AlexandriaBold.14sp.white"
         android:textColorHint="@color/white"
         app:boxBackgroundColor="@color/electric_lime"
+        app:boxStrokeColor="@android:color/transparent"
+        app:boxStrokeWidth="0dp"
+        app:boxStrokeWidthFocused="0dp"
         app:endIconDrawable="@drawable/ic_dropdown"
         app:endIconTint="@color/white"
         app:expandedHintEnabled="false"
-        app:layout_constrainedWidth="true"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@id/tv_title"
         app:startIconCheckable="false"
@@ -33,26 +35,18 @@
 
         <AutoCompleteTextView
             android:id="@+id/actv"
-            android:layout_width="wrap_content"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:minWidth="72dp"
+            android:layout_gravity="center"
             android:dropDownHeight="wrap_content"
-            android:dropDownVerticalOffset="8dp"
+            android:dropDownVerticalOffset="0dp"
+            android:fontFamily="@font/alexandria_bold"
+            android:textAlignment="center"
             android:importantForAutofill="no"
             android:inputType="none"
-            android:textAppearance="@style/AlexandriaBold.14sp.white"
+            android:textColor="@color/white"
+            android:textSize="16sp"
             tools:ignore="labelFor" />
 
     </com.google.android.material.textfield.TextInputLayout>
-
-    <View
-        android:id="@+id/v_indicator"
-        android:layout_width="0dp"
-        android:layout_height="2dp"
-        android:layout_marginTop="2dp"
-        android:background="@color/season_dropdown_indicator"
-        app:layout_constraintEnd_toEndOf="@id/til"
-        app:layout_constraintStart_toStartOf="@id/til"
-        app:layout_constraintTop_toBottomOf="@id/til" />
-
 </androidx.constraintlayout.widget.ConstraintLayout>

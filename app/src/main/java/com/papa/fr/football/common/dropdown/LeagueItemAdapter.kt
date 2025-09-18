@@ -5,6 +5,7 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.ArrayAdapter
+import androidx.core.view.isVisible
 import com.papa.fr.football.databinding.ItemLeagueOptionBinding
 
 class LeagueItemAdapter(
@@ -33,7 +34,8 @@ class LeagueItemAdapter(
         }
 
         getItem(position)?.let { league ->
-            binding.icon.setImageResource(league.iconRes)
+            league.iconRes?.let { binding.icon.setImageResource(it) }
+            binding.icon.isVisible = league.iconRes != null
             binding.title.text = league.name
         }
 

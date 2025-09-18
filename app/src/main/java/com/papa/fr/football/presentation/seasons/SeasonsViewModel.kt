@@ -1,5 +1,6 @@
 package com.papa.fr.football.presentation.seasons
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.papa.fr.football.domain.usecase.GetSeasonsUseCase
@@ -22,6 +23,7 @@ class SeasonsViewModel(
         viewModelScope.launch {
             runCatching { getSeasonsUseCase(uniqueTournamentId) }
                 .onSuccess { seasons ->
+                    Log.d("IQBAL-TEST", "loadSeasons: $seasons")
                     _uiState.update {
                         it.copy(
                             isLoading = false,

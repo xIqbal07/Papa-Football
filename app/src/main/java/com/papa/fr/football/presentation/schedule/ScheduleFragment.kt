@@ -79,17 +79,13 @@ class ScheduleFragment : Fragment() {
         viewLifecycleOwner.lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
                 seasonsViewModel.uiState.collect { state ->
-                    binding.ddSeason.isEnabled = !state.isLoading
-                    binding.btnSchedule.isEnabled = !state.isLoading
-
                     val seasonIds = state.seasons.map { it.id }
                     if (seasonIds != lastSeasonIds && state.seasons.isNotEmpty()) {
                         lastSeasonIds = seasonIds
                         val items = state.seasons.map { season ->
                             LeagueItem(
                                 id = season.id.toString(),
-                                name = season.name,
-                                iconRes = R.drawable.ic_nav_schedule
+                                name = season.year.orEmpty()
                             )
                         }
                         binding.ddSeason.setData(items)

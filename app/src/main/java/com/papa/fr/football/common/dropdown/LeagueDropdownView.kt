@@ -28,7 +28,8 @@ class LeagueDropdownView @JvmOverloads constructor(
         attrs?.let {
             context.withStyledAttributes(it, R.styleable.LeagueDropdownView) {
                 binding.tvTitle.text = getString(R.styleable.LeagueDropdownView_label)
-                binding.til.isStartIconVisible = getBoolean(R.styleable.LeagueDropdownView_is_show_start_icon, false)
+                binding.til.isStartIconVisible =
+                    getBoolean(R.styleable.LeagueDropdownView_is_show_start_icon, false)
             }
         }
 
@@ -62,12 +63,15 @@ class LeagueDropdownView @JvmOverloads constructor(
             previouslySelectedId != null -> {
                 leagues.firstOrNull { it.id == previouslySelectedId }?.let { setSelected(it) }
             }
+
             placeholderText != null -> {
                 binding.actv.setText(placeholderText, false)
             }
+
             items.isNotEmpty() -> {
                 setSelected(items.first())
             }
+
             else -> {
                 binding.actv.setText("", false)
             }
@@ -117,7 +121,6 @@ class LeagueDropdownView @JvmOverloads constructor(
         super.setEnabled(enabled)
         binding.til.isEnabled = enabled
         binding.actv.isEnabled = enabled
-        binding.vIndicator.alpha = if (enabled) 1f else 0.4f
     }
 
     /** Save/restore selection across rotations **/
@@ -139,6 +142,7 @@ class LeagueDropdownView @JvmOverloads constructor(
             id != null -> {
                 leagues.firstOrNull { it.id == id }?.let { setSelected(it) }
             }
+
             placeholderText != null -> {
                 binding.actv.setText(placeholderText, false)
             }

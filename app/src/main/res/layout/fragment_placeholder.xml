@@ -7,7 +7,7 @@
 
     <TextView
         android:id="@+id/tv_placeholder"
-        style="@style/AlexandriaBold.16sp.white"
+        style="@style/AlexandriaBold.18sp.white"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:gravity="center"
