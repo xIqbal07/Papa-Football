@@ -28,7 +28,10 @@ android {
         }
     }
 
-    viewBinding.enable = true
+    buildFeatures {
+        buildConfig = true
+        viewBinding = true
+    }
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11
@@ -57,7 +60,6 @@ dependencies {
     implementation(libs.ktor.serialization.kotlinx.json)
     implementation(libs.ktor.client.logging)
     implementation(libs.koin.android)
-    implementation(libs.koin.androidx.viewmodel)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)

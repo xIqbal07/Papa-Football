@@ -11,7 +11,7 @@
         android:layout_height="wrap_content"
         android:layout_gravity="center"
         android:gravity="center"
-        android:textAppearance="@style/AlexandriaBold.16sp.white"
+        android:textAppearance="@style/AlexandriaBold.white"
         tools:text="Coming soon" />
 
 </FrameLayout>

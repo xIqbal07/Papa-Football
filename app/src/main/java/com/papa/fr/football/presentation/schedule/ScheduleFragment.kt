@@ -103,8 +103,7 @@ class ScheduleFragment : Fragment(R.layout.fragment_schedule) {
         val items = seasons.map { season ->
             LeagueItem(
                 id = season.id.toString(),
-                name = season.name,
-                iconRes = R.drawable.ic_nav_schedule
+                name = season.year.orEmpty()
             )
         }
         binding.ddSeason.setData(items)
