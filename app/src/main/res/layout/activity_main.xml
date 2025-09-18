@@ -73,9 +73,9 @@
         android:layout_marginStart="12dp"
         app:label="League"
         app:is_show_start_icon="true"
+        app:layout_constraintBottom_toBottomOf="@id/dd_season"
         app:layout_constraintEnd_toEndOf="@id/gl_end"
         app:layout_constraintStart_toEndOf="@id/dd_season"
-        app:layout_constraintBottom_toBottomOf="@id/dd_season"
         app:layout_constraintTop_toTopOf="@id/dd_season" />
 
     <com.papa.fr.football.common.matches.MatchesTabLayoutView
@@ -84,9 +84,25 @@
         android:layout_height="0dp"
         android:layout_marginTop="24dp"
         app:titleText="@string/matches_title"
-        app:layout_constraintTop_toBottomOf="@id/dd_season"
-        app:layout_constraintStart_toStartOf="@id/gl_start"
+        app:layout_constraintBottom_toTopOf="@id/bottom_navigation"
         app:layout_constraintEnd_toEndOf="@id/gl_end"
-        app:layout_constraintBottom_toBottomOf="parent" />
+        app:layout_constraintStart_toStartOf="@id/gl_start"
+        app:layout_constraintTop_toBottomOf="@id/dd_season" />
+
+    <com.google.android.material.bottomnavigation.BottomNavigationView
+        android:id="@+id/bottom_navigation"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:background="@drawable/bg_matches_tab_group"
+        android:paddingTop="6dp"
+        android:paddingBottom="6dp"
+        app:itemIconTint="@color/white"
+        app:itemRippleColor="@android:color/transparent"
+        app:itemTextColor="@color/white"
+        app:labelVisibilityMode="labeled"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:menu="@menu/menu_bottom_nav" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

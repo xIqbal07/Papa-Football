@@ -7,4 +7,11 @@
     <color name="matches_tab_selected_background">#7AF8F4</color>
     <color name="matches_tab_selected_text">#050F1D</color>
     <color name="matches_tab_unselected_text">#B1C1D1</color>
+    <color name="matches_card_background">#122034</color>
+    <color name="matches_card_border">#1F3554</color>
+    <color name="matches_live_chip_background">#FF5656</color>
+    <color name="matches_future_chip_background">#2E8BFF</color>
+    <color name="matches_secondary_text">#A5B6CB</color>
+    <color name="matches_score_text">#F5F8FF</color>
+    <color name="matches_divider">#22324A</color>
 </resources>

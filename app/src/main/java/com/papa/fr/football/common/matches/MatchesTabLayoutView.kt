@@ -62,19 +62,6 @@ class MatchesTabLayoutView @JvmOverloads constructor(
             tab.customView = createTabView(tabs[position].title)
         }.also { it.attach() }
 
-        binding.tabLayout.clearOnTabSelectedListeners()
-        binding.tabLayout.addOnTabSelectedListener(object : TabLayout.OnTabSelectedListener {
-            override fun onTabSelected(tab: TabLayout.Tab) {
-                updateTabSelection(tab.position)
-            }
-
-            override fun onTabUnselected(tab: TabLayout.Tab) {
-                updateTabSelection(binding.tabLayout.selectedTabPosition)
-            }
-
-            override fun onTabReselected(tab: TabLayout.Tab) = Unit
-        })
-
         pageChangeCallback?.let { binding.viewPager.unregisterOnPageChangeCallback(it) }
         pageChangeCallback = object : ViewPager2.OnPageChangeCallback() {
             override fun onPageSelected(position: Int) {
