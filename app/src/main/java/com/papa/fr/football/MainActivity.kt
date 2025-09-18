@@ -52,12 +52,12 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun setupBottomNav(bottomNav: BottomNavigationView) {
-        bottomNav.setOnItemSelectedListener { item ->
-            when (item.itemId) {
-                R.id.menu_schedule -> true
-                else -> false
-            }
-        }
+//        bottomNav.setOnItemSelectedListener { item ->
+//            when (item.itemId) {
+//                R.id.menu_schedule -> true
+//                else -> false
+//            }
+//        }
         bottomNav.selectedItemId = R.id.menu_schedule
     }
 }

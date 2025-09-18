@@ -4,8 +4,6 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:layout_marginStart="16dp"
-    android:layout_marginEnd="16dp"
     android:layout_marginBottom="12dp"
     android:foreground="?android:attr/selectableItemBackground"
     app:cardBackgroundColor="@color/matches_card_background"
@@ -19,105 +17,52 @@
         android:layout_height="wrap_content"
         android:padding="16dp">
 
-        <TextView
-            android:id="@+id/tv_future_chip"
-            style="@style/AlexandriaBold.10sp.white"
+        <com.papa.fr.football.common.itemteam.ItemListTeam
+            android:id="@+id/ilt_home"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:background="@drawable/match_chip_future_background"
-            android:paddingHorizontal="12dp"
-            android:paddingVertical="4dp"
-            android:text="@string/matches_tab_future"
+            app:active="true"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent"
-            tools:ignore="TextContrastCheck" />
+            app:logo="@drawable/eredivisie"
+            app:title="Royal Vallecano" />
 
-        <TextView
-            android:id="@+id/tv_future_date"
-            style="@style/AlexandriaRegular.10sp.white"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:textColor="@color/matches_secondary_text"
-            app:layout_constraintBaseline_toBaselineOf="@id/tv_future_chip"
-            app:layout_constraintEnd_toEndOf="parent"
-            tools:text="01.07.2025" />
-
-        <TextView
-            android:id="@+id/tv_future_home"
-            style="@style/AlexandriaBold.14sp.white"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="16dp"
-            app:layout_constraintEnd_toStartOf="@id/tv_future_time"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@id/tv_future_chip"
-            tools:text="Royal Vallecano" />
-
-        <TextView
-            android:id="@+id/tv_future_away"
-            style="@style/AlexandriaRegular.12sp.white"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="6dp"
-            app:layout_constraintEnd_toStartOf="@id/tv_future_time"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@id/tv_future_home"
-            tools:text="Real Betis" />
-
-        <TextView
-            android:id="@+id/tv_future_time"
-            style="@style/AlexandriaBold.12sp.white"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="12dp"
-            android:textColor="@color/matches_score_text"
-            app:layout_constraintBaseline_toBaselineOf="@id/tv_future_home"
-            app:layout_constraintEnd_toEndOf="parent"
-            tools:text="20:00" />
-
-        <LinearLayout
-            android:id="@+id/group_future_odds"
+        <com.papa.fr.football.common.itemteam.ItemListTeam
+            android:id="@+id/ilt_away"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginTop="12dp"
-            android:gravity="center"
-            android:orientation="horizontal"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/ilt_home"
+            app:logo="@drawable/eredivisie"
+            app:title="Royal Vallecano" />
+
+        <View
+            android:id="@+id/v_line"
+            android:layout_width="2dp"
+            android:layout_height="0dp"
+            android:layout_marginEnd="80dp"
+            android:background="#2D4A63"
+            app:layout_constraintBottom_toBottomOf="@id/ilt_away"
+            app:layout_constraintEnd_toStartOf="@id/tv_home_start_time"
+            app:layout_constraintTop_toTopOf="@id/ilt_home" />
+
+        <TextView
+            android:id="@+id/tv_home_start_time"
+            style="@style/AfacadBold.12sp.cyan"
+            app:layout_constraintBottom_toBottomOf="@id/ilt_home"
             app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintTop_toBottomOf="@id/tv_future_time">
+            app:layout_constraintTop_toTopOf="@id/ilt_home"
+            tools:text="Today 10:00" />
 
-            <TextView
-                android:id="@+id/tv_future_odds_home"
-                style="@style/AlexandriaBold.12sp.white"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginEnd="6dp"
-                android:background="@drawable/match_odds_background"
-                android:paddingHorizontal="12dp"
-                android:paddingVertical="6dp"
-                tools:text="2.6" />
-
-            <TextView
-                android:id="@+id/tv_future_odds_draw"
-                style="@style/AlexandriaBold.12sp.white"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginEnd="6dp"
-                android:background="@drawable/match_odds_background"
-                android:paddingHorizontal="12dp"
-                android:paddingVertical="6dp"
-                tools:text="2.9" />
-
-            <TextView
-                android:id="@+id/tv_future_odds_away"
-                style="@style/AlexandriaBold.12sp.white"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:background="@drawable/match_odds_background"
-                android:paddingHorizontal="12dp"
-                android:paddingVertical="6dp"
-                tools:text="2.7" />
-        </LinearLayout>
-
+        <TextView
+            android:id="@+id/tv_away_start_time"
+            style="@style/AfacadBold.12sp.cyan"
+            android:textColor="@color/white"
+            app:layout_constraintBottom_toBottomOf="@id/ilt_away"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toTopOf="@id/ilt_away"
+            tools:text="--" />
     </androidx.constraintlayout.widget.ConstraintLayout>
 
 </com.google.android.material.card.MaterialCardView>
