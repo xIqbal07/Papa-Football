@@ -9,8 +9,8 @@ import androidx.core.view.WindowInsetsCompat
 import androidx.fragment.app.commit
 import com.google.android.material.bottomnavigation.BottomNavigationView
 import com.papa.fr.football.databinding.ActivityMainBinding
-import com.papa.fr.football.schedule.ScheduleFragment
-import com.papa.fr.football.ui.PlaceholderFragment
+import com.papa.fr.football.presentation.navigation.PlaceholderFragment
+import com.papa.fr.football.presentation.schedule.ScheduleFragment
 
 class MainActivity : AppCompatActivity() {
     private lateinit var binding: ActivityMainBinding
@@ -59,24 +59,40 @@ class MainActivity : AppCompatActivity() {
             R.id.menu_schedule -> ScheduleFragment.TAG to { ScheduleFragment() }
             R.id.menu_highlights -> PlaceholderFragment.tagFor(itemId) to {
                 PlaceholderFragment.newInstance(
-                    getString(R.string.placeholder_coming_soon, getString(R.string.bottom_nav_highlights))
+                    getString(
+                        R.string.placeholder_coming_soon,
+                        getString(R.string.bottom_nav_highlights)
+                    )
                 )
             }
+
             R.id.menu_teams -> PlaceholderFragment.tagFor(itemId) to {
                 PlaceholderFragment.newInstance(
-                    getString(R.string.placeholder_coming_soon, getString(R.string.bottom_nav_teams))
+                    getString(
+                        R.string.placeholder_coming_soon,
+                        getString(R.string.bottom_nav_teams)
+                    )
                 )
             }
+
             R.id.menu_standings -> PlaceholderFragment.tagFor(itemId) to {
                 PlaceholderFragment.newInstance(
-                    getString(R.string.placeholder_coming_soon, getString(R.string.bottom_nav_standings))
+                    getString(
+                        R.string.placeholder_coming_soon,
+                        getString(R.string.bottom_nav_standings)
+                    )
                 )
             }
+
             R.id.menu_settings -> PlaceholderFragment.tagFor(itemId) to {
                 PlaceholderFragment.newInstance(
-                    getString(R.string.placeholder_coming_soon, getString(R.string.bottom_nav_settings))
+                    getString(
+                        R.string.placeholder_coming_soon,
+                        getString(R.string.bottom_nav_settings)
+                    )
                 )
             }
+
             else -> return false
         }
 
