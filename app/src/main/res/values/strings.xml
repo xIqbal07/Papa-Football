@@ -14,4 +14,6 @@
     <string name="matches_tab_future_label">Future matches</string>
     <string name="matches_tab_live_label">Live matches</string>
     <string name="matches_tab_past_label">Past matches</string>
+    <string name="bottom_nav_placeholder_message">The %1$s screen is coming soon.</string>
+    <string name="season_load_error">Unable to load seasons. Please try again.</string>
 </resources>

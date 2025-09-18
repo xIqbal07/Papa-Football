@@ -22,6 +22,7 @@ class LeagueDropdownView @JvmOverloads constructor(
 
     private var onChanged: ((LeagueItem) -> Unit)? = null
     private var leagues: List<LeagueItem> = emptyList()
+    private var placeholderText: String? = null
 
     init {
         attrs?.let {
@@ -34,12 +35,16 @@ class LeagueDropdownView @JvmOverloads constructor(
         binding.actv.setAdapter(adapter)
         binding.actv.setOnItemClickListener { _, _, position, _ ->
             val value = adapter.getItem(position) ?: return@setOnItemClickListener
+            setSelected(value)
             onChanged?.invoke(value)
         }
 
         // Optional: allow clicking the layout to open menu
         binding.til.setEndIconOnClickListener { binding.actv.showDropDown() }
         binding.actv.setOnClickListener { binding.actv.showDropDown() }
+
+        // Ensure initial enabled state cascades to children
+        setEnabled(isEnabled)
     }
 
 
@@ -48,12 +53,24 @@ class LeagueDropdownView @JvmOverloads constructor(
     }
 
     fun setData(items: List<LeagueItem>) {
+        val previouslySelectedId = getSelected()?.id
+
         leagues = items
         adapter.replaceAll(items)
-        // If current selection no longer exists, clear
-        val selected = getSelected()
-        if (selected == null && items.isNotEmpty()) {
-            setSelected(items.first())
+
+        when {
+            previouslySelectedId != null -> {
+                leagues.firstOrNull { it.id == previouslySelectedId }?.let { setSelected(it) }
+            }
+            placeholderText != null -> {
+                binding.actv.setText(placeholderText, false)
+            }
+            items.isNotEmpty() -> {
+                setSelected(items.first())
+            }
+            else -> {
+                binding.actv.setText("", false)
+            }
         }
     }
 
@@ -62,6 +79,7 @@ class LeagueDropdownView @JvmOverloads constructor(
             binding.actv.setText("", false)
             return
         }
+        placeholderText = null
         val index = leagues.indexOfFirst { it.id == target.id }
         if (index >= 0) {
             // setText(CharSequence, boolean) avoids filtering
@@ -69,13 +87,37 @@ class LeagueDropdownView @JvmOverloads constructor(
         }
     }
 
+    fun setPlaceholder(text: CharSequence?) {
+        placeholderText = text?.toString()
+        if (text == null) {
+            if (getSelected() == null) {
+                binding.actv.setText("", false)
+            }
+            return
+        }
+
+        if (getSelected() == null) {
+            binding.actv.setText(placeholderText, false)
+        }
+    }
+
     fun getSelected(): LeagueItem? {
         val name = binding.actv.text?.toString() ?: return null
+        if (placeholderText != null && name == placeholderText) {
+            return null
+        }
         return leagues.firstOrNull { it.name == name }
     }
 
     fun setOnChangedListener(listener: (LeagueItem) -> Unit) {
         onChanged = listener
+    }
+
+    override fun setEnabled(enabled: Boolean) {
+        super.setEnabled(enabled)
+        binding.til.isEnabled = enabled
+        binding.actv.isEnabled = enabled
+        binding.vIndicator.alpha = if (enabled) 1f else 0.4f
     }
 
     /** Save/restore selection across rotations **/
@@ -84,13 +126,22 @@ class LeagueDropdownView @JvmOverloads constructor(
         return Bundle().apply {
             putParcelable("super", superState)
             putString("selectedId", getSelected()?.id)
+            putString("placeholder", placeholderText)
         }
     }
 
     override fun onRestoreInstanceState(state: Parcelable?) {
         val bundle = state as? Bundle
         super.onRestoreInstanceState(bundle?.getParcelable("super"))
-        val id = bundle?.getString("selectedId") ?: return
-        leagues.firstOrNull { it.id == id }?.let { setSelected(it) }
+        placeholderText = bundle?.getString("placeholder")
+        val id = bundle?.getString("selectedId")
+        when {
+            id != null -> {
+                leagues.firstOrNull { it.id == id }?.let { setSelected(it) }
+            }
+            placeholderText != null -> {
+                binding.actv.setText(placeholderText, false)
+            }
+        }
     }
 }
