@@ -78,4 +78,15 @@
         app:layout_constraintBottom_toBottomOf="@id/dd_season"
         app:layout_constraintTop_toTopOf="@id/dd_season" />
 
+    <com.papa.fr.football.common.matches.MatchesTabLayoutView
+        android:id="@+id/matches_tabs"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:layout_marginTop="24dp"
+        app:titleText="@string/matches_title"
+        app:layout_constraintTop_toBottomOf="@id/dd_season"
+        app:layout_constraintStart_toStartOf="@id/gl_start"
+        app:layout_constraintEnd_toEndOf="@id/gl_end"
+        app:layout_constraintBottom_toBottomOf="parent" />
+
 </androidx.constraintlayout.widget.ConstraintLayout>

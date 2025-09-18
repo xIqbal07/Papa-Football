@@ -32,4 +32,9 @@
     <style name="AlexandriaBold.14sp.white" parent="AlexandriaBold.white">
         <item name="android:textSize">14sp</item>
     </style>
+
+    <style name="AlexandriaBold.12sp.matchesTab" parent="AlexandriaBold">
+        <item name="android:textColor">@color/matches_tab_unselected_text</item>
+        <item name="android:textSize">12sp</item>
+    </style>
 </resources>
