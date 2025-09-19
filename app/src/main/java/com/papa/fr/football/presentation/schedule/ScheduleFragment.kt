@@ -1,7 +1,6 @@
 package com.papa.fr.football.presentation.schedule
 
 import android.os.Bundle
-import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -17,7 +16,7 @@ import com.papa.fr.football.databinding.FragmentScheduleBinding
 import com.papa.fr.football.matches.MatchesListFragment
 import com.papa.fr.football.matches.MatchesTabType
 import kotlinx.coroutines.launch
-import org.koin.androidx.viewmodel.ext.android.viewModel
+import org.koin.androidx.viewmodel.ext.android.sharedViewModel
 import java.util.Calendar
 import java.util.Locale
 
@@ -26,10 +25,11 @@ class ScheduleFragment : Fragment() {
     private var _binding: FragmentScheduleBinding? = null
     private val binding get() = _binding!!
 
-    private val scheduleViewModel: ScheduleViewModel by viewModel()
+    private val scheduleViewModel: ScheduleViewModel by sharedViewModel()
 
     private var lastSeasonIdsByLeague: Map<Int, List<Int>> = emptyMap()
     private var lastErrorMessage: String? = null
+    private var lastSelectedLeagueId: Int? = null
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -47,19 +47,19 @@ class ScheduleFragment : Fragment() {
         observeLeagues()
 
         binding.ddLeague.setOnChangedListener { league ->
+            scheduleViewModel.onLeagueSelected(league.id)
             updateSeasonDropdown(league.id)
+        }
+
+        binding.ddSeason.setOnChangedListener { season ->
+            scheduleViewModel.onSeasonSelected(season.id)
         }
 
         binding.ddSeason.setPlaceholder(defaultSeasonLabel())
         binding.ddLeague.setPlaceholder(scheduleViewModel.defaultLeagueLabel())
 
         binding.btnSchedule.setOnClickListener {
-            val selectedLeagueId = binding.ddLeague.getSelected()?.id
-            if (selectedLeagueId != null) {
-                scheduleViewModel.loadSeasonsForLeague(selectedLeagueId)
-            } else {
-                scheduleViewModel.loadAllLeagueSeasons()
-            }
+            scheduleViewModel.refreshSchedule()
         }
 
         if (scheduleViewModel.uiState.value.seasonsByLeague.isEmpty()) {
@@ -93,7 +93,18 @@ class ScheduleFragment : Fragment() {
                     }
                     if (seasonIdsByLeague != lastSeasonIdsByLeague) {
                         lastSeasonIdsByLeague = seasonIdsByLeague
-                        updateSeasonDropdown(binding.ddLeague.getSelected()?.id)
+                        updateSeasonDropdown(state.selectedLeagueId)
+                    }
+
+                    val selectedLeagueId = state.selectedLeagueId
+                    if (selectedLeagueId != null && selectedLeagueId != lastSelectedLeagueId) {
+                        lastSelectedLeagueId = selectedLeagueId
+                        val leagueItem = scheduleViewModel.leagueItems.value
+                            .firstOrNull { it.id == selectedLeagueId }
+                        if (leagueItem != null) {
+                            binding.ddLeague.setSelected(leagueItem)
+                            updateSeasonDropdown(selectedLeagueId)
+                        }
                     }
 
                     val errorMessage =
@@ -115,9 +126,20 @@ class ScheduleFragment : Fragment() {
                 scheduleViewModel.leagueItems.collect { leagues ->
                     if (leagues.isNotEmpty()) {
                         binding.ddLeague.setData(leagues)
-                        if (binding.ddLeague.getSelected() == null) {
-                            binding.ddLeague.setSelected(leagues.first())
-                            updateSeasonDropdown(leagues.first().id)
+                        val selectedLeagueId = scheduleViewModel.uiState.value.selectedLeagueId
+                        when {
+                            selectedLeagueId != null -> {
+                                leagues.firstOrNull { it.id == selectedLeagueId }?.let {
+                                    binding.ddLeague.setSelected(it)
+                                }
+                            }
+
+                            binding.ddLeague.getSelected() == null -> {
+                                val firstLeague = leagues.first()
+                                binding.ddLeague.setSelected(firstLeague)
+                                scheduleViewModel.onLeagueSelected(firstLeague.id)
+                                updateSeasonDropdown(firstLeague.id)
+                            }
                         }
                     }
                 }
@@ -136,10 +158,23 @@ class ScheduleFragment : Fragment() {
         val seasonItems = seasons.map { season ->
             LeagueItem(
                 id = season.id,
-                name = season.year.orEmpty()
+                name = season.year?.takeIf { it.isNotBlank() } ?: season.name
             )
         }
         binding.ddSeason.setData(seasonItems)
+
+        val selectedSeasonId = scheduleViewModel.uiState.value.selectedSeasonId
+        val selectedItem = seasonItems.firstOrNull { it.id == selectedSeasonId }
+
+        if (selectedItem != null) {
+            binding.ddSeason.setSelected(selectedItem)
+        } else {
+            val firstItem = seasonItems.firstOrNull()
+            if (firstItem != null) {
+                binding.ddSeason.setSelected(firstItem)
+                scheduleViewModel.onSeasonSelected(firstItem.id)
+            }
+        }
     }
 
     private fun defaultSeasonLabel(): String {

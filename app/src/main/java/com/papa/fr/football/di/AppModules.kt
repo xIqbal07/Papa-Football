@@ -1,8 +1,12 @@
 package com.papa.fr.football.di
 
 import com.papa.fr.football.data.remote.SeasonApiService
+import com.papa.fr.football.data.remote.TeamApiService
+import com.papa.fr.football.data.repository.MatchRepositoryImpl
 import com.papa.fr.football.data.repository.SeasonRepositoryImpl
+import com.papa.fr.football.domain.repository.MatchRepository
 import com.papa.fr.football.domain.repository.SeasonRepository
+import com.papa.fr.football.domain.usecase.GetUpcomingMatchesUseCase
 import com.papa.fr.football.domain.usecase.GetSeasonsUseCase
 import com.papa.fr.football.presentation.schedule.ScheduleViewModel
 import io.ktor.client.HttpClient
@@ -51,13 +55,16 @@ val networkModule = module {
 
 val dataModule = module {
     single { SeasonApiService(get()) }
+    single { TeamApiService(get()) }
     single<SeasonRepository> { SeasonRepositoryImpl(get()) }
+    single<MatchRepository> { MatchRepositoryImpl(get(), get()) }
 }
 
 val domainModule = module {
     factory { GetSeasonsUseCase(get()) }
+    factory { GetUpcomingMatchesUseCase(get()) }
 }
 
 val presentationModule = module {
-    viewModel { ScheduleViewModel(get()) }
+    viewModel { ScheduleViewModel(get(), get()) }
 }

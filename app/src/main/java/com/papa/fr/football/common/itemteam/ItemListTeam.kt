@@ -1,7 +1,9 @@
 package com.papa.fr.football.common.itemteam
 
 import android.content.Context
+import android.graphics.BitmapFactory
 import android.util.AttributeSet
+import android.util.Base64
 import android.view.LayoutInflater
 import androidx.annotation.DrawableRes
 import androidx.constraintlayout.widget.ConstraintLayout
@@ -37,6 +39,26 @@ class ItemListTeam @JvmOverloads constructor(
 
     fun setLogo(@DrawableRes logo: Int) {
         binding.ivLogo.setImageDrawable(ContextCompat.getDrawable(context, logo))
+    }
+
+    fun setLogoBase64(base64: String?) {
+        if (base64.isNullOrBlank()) {
+            binding.ivLogo.setImageDrawable(null)
+            return
+        }
+
+        val decodedBytes = runCatching { Base64.decode(base64, Base64.DEFAULT) }.getOrNull()
+        if (decodedBytes == null) {
+            binding.ivLogo.setImageDrawable(null)
+            return
+        }
+
+        val bitmap = BitmapFactory.decodeByteArray(decodedBytes, 0, decodedBytes.size)
+        if (bitmap != null) {
+            binding.ivLogo.setImageBitmap(bitmap)
+        } else {
+            binding.ivLogo.setImageDrawable(null)
+        }
     }
 
     fun setIndicatorActive(isActive: Boolean) {

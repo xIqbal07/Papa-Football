@@ -43,8 +43,12 @@ class MatchesAdapter : ListAdapter<MatchUiModel, RecyclerView.ViewHolder>(DIFF_C
         }
     }
 
-    fun submitMatches(matches: List<MatchUiModel>) {
-        submitList(matches)
+    fun submitMatches(matches: List<MatchUiModel>, onCommitted: (() -> Unit)? = null) {
+        if (onCommitted == null) {
+            submitList(matches)
+        } else {
+            submitList(matches, Runnable { onCommitted() })
+        }
     }
 
     private enum class ViewType { FUTURE, LIVE, PAST }
@@ -54,11 +58,14 @@ class MatchesAdapter : ListAdapter<MatchUiModel, RecyclerView.ViewHolder>(DIFF_C
     ) : RecyclerView.ViewHolder(binding.root) {
 
         fun bind(item: MatchUiModel.Future) = with(binding) {
-            iltHome.setTitle(item.homeTeam)
-            iltHome.setIndicatorActive(item.homeStartTime.contains("Today"))
-            iltAway.setTitle(item.awayTeam)
-            tvHomeStartTime.text = item.homeStartTime
-            tvAwayStartTime.text = item.awayStartTime
+            iltHome.setTitle(item.homeTeamName)
+            iltHome.setIndicatorActive(item.isToday)
+            iltHome.setLogoBase64(item.homeLogoBase64)
+            iltAway.setTitle(item.awayTeamName)
+            iltAway.setIndicatorActive(false)
+            iltAway.setLogoBase64(item.awayLogoBase64)
+            tvHomeStartTime.text = item.startDateLabel
+            tvAwayStartTime.text = item.startTimeLabel
         }
     }
 
@@ -106,10 +113,14 @@ class MatchesAdapter : ListAdapter<MatchUiModel, RecyclerView.ViewHolder>(DIFF_C
 sealed class MatchUiModel(open val id: String) {
     data class Future(
         override val id: String,
-        val homeTeam: String,
-        val awayTeam: String,
-        val homeStartTime: String,
-        val awayStartTime: String = "--",
+        val homeTeamId: Int,
+        val homeTeamName: String,
+        val awayTeamId: Int,
+        val awayTeamName: String,
+        val startTimestamp: Long,
+        val startDateLabel: String,
+        val startTimeLabel: String,
+        val isToday: Boolean,
         val homeLogoBase64: String,
         val awayLogoBase64: String,
         val odds: Odds? = null,

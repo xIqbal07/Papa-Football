@@ -6,6 +6,7 @@
     <string name="matches_tab_past">Past</string>
     <string name="matches_placeholder_format">This is the %1$s matches screen.</string>
     <string name="matches_placeholder_empty">There are currently no matches to display.</string>
+    <string name="matches_placeholder_loading">Loading upcoming matches…</string>
     <string name="bottom_nav_schedule">Schedule</string>
     <string name="bottom_nav_highlights">Highlights</string>
     <string name="bottom_nav_teams">Teams</string>
