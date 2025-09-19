@@ -19,7 +19,6 @@ import com.papa.fr.football.presentation.schedule.ScheduleUiState
 import com.papa.fr.football.presentation.schedule.ScheduleViewModel
 import kotlinx.coroutines.launch
 import org.koin.androidx.viewmodel.ext.android.activityViewModel
-import java.util.Locale
 
 class MatchesListFragment : Fragment() {
 
@@ -147,8 +146,8 @@ sealed interface MatchesTabType {
 
 private fun MatchesListFragment.matchesFor(state: ScheduleUiState): List<MatchUiModel> = when (matchesType) {
     MatchesTabType.Future -> state.futureMatches
+    MatchesTabType.Live -> state.liveMatches
     MatchesTabType.Past -> state.pastMatches
-    MatchesTabType.Live -> emptyList()
 }
 
 private fun MatchesListFragment.placeholderTextFor(state: ScheduleUiState): String = when (matchesType) {
@@ -158,16 +157,17 @@ private fun MatchesListFragment.placeholderTextFor(state: ScheduleUiState): Stri
         else -> getString(R.string.matches_placeholder_empty)
     }
 
+    MatchesTabType.Live -> when {
+        state.isLiveMatchesLoading -> getString(R.string.matches_placeholder_loading_live)
+        !state.liveMatchesErrorMessage.isNullOrBlank() -> state.liveMatchesErrorMessage
+        else -> getString(R.string.matches_placeholder_empty_live)
+    }
+
     MatchesTabType.Past -> when {
         state.isPastMatchesLoading -> getString(R.string.matches_placeholder_loading)
         !state.pastMatchesErrorMessage.isNullOrBlank() -> state.pastMatchesErrorMessage
         else -> getString(R.string.matches_placeholder_empty)
     }
-
-    MatchesTabType.Live -> getString(
-        R.string.matches_placeholder_format,
-        matchesType.storageKey.lowercase(Locale.getDefault())
-    )
 }
 
 private fun MatchesListFragment.resolveMatchesError(state: ScheduleUiState): String? = when (matchesType) {
@@ -175,9 +175,11 @@ private fun MatchesListFragment.resolveMatchesError(state: ScheduleUiState): Str
         ?.ifBlank { getString(R.string.matches_placeholder_empty) }
         ?.takeIf { it.isNotBlank() }
 
+    MatchesTabType.Live -> state.liveMatchesErrorMessage
+        ?.ifBlank { getString(R.string.matches_placeholder_empty_live) }
+        ?.takeIf { it.isNotBlank() }
+
     MatchesTabType.Past -> state.pastMatchesErrorMessage
         ?.ifBlank { getString(R.string.matches_placeholder_empty) }
         ?.takeIf { it.isNotBlank() }
-
-    MatchesTabType.Live -> null
 }

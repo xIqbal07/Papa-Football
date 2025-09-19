@@ -73,12 +73,12 @@ class MatchesAdapter : ListAdapter<MatchUiModel, RecyclerView.ViewHolder>(DIFF_C
     ) : RecyclerView.ViewHolder(binding.root) {
 
         fun bind(item: MatchUiModel.Live) = with(binding) {
-//            tvLiveMinute.text = item.contextText
-//            tvLiveHome.text = item.homeTeam
-//            tvLiveAway.text = item.awayTeam
-//            tvLiveScore.text = item.score
-//            tvLiveTime.text = item.elapsed
-//            tvLiveStatus.text = item.status
+            iltHome.setTitle(item.homeTeamName)
+            iltHome.setLogoBase64(item.homeLogoBase64)
+            iltAway.setTitle(item.awayTeamName)
+            iltAway.setLogoBase64(item.awayLogoBase64)
+            tvHomeStatus.text = item.statusLabel
+            tvScore.text = item.scoreLabel
         }
     }
 
@@ -128,13 +128,19 @@ sealed class MatchUiModel(open val id: String) {
 
     data class Live(
         override val id: String,
-        val homeTeam: String,
-        val awayTeam: String,
-        val score: String,
-        val contextText: String,
-        val elapsed: String,
-        val status: String,
-    ) : MatchUiModel(id)
+        val homeTeamId: Int,
+        val homeTeamName: String,
+        val awayTeamId: Int,
+        val awayTeamName: String,
+        val homeScore: Int,
+        val awayScore: Int,
+        val homeLogoBase64: String,
+        val awayLogoBase64: String,
+        val statusLabel: String,
+    ) : MatchUiModel(id) {
+        val scoreLabel: String
+            get() = "$homeScore:$awayScore"
+    }
 
     data class Past(
         override val id: String,

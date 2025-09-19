@@ -2,12 +2,15 @@ package com.papa.fr.football.di
 
 import com.chuckerteam.chucker.api.ChuckerCollector
 import com.chuckerteam.chucker.api.ChuckerInterceptor
+import com.papa.fr.football.data.remote.LiveEventsApiService
 import com.papa.fr.football.data.remote.SeasonApiService
 import com.papa.fr.football.data.remote.TeamApiService
 import com.papa.fr.football.data.repository.MatchRepositoryImpl
 import com.papa.fr.football.data.repository.SeasonRepositoryImpl
+import com.papa.fr.football.data.repository.TeamLogoProvider
 import com.papa.fr.football.domain.repository.MatchRepository
 import com.papa.fr.football.domain.repository.SeasonRepository
+import com.papa.fr.football.domain.usecase.GetLiveMatchesUseCase
 import com.papa.fr.football.domain.usecase.GetRecentMatchesUseCase
 import com.papa.fr.football.domain.usecase.GetSeasonsUseCase
 import com.papa.fr.football.domain.usecase.GetUpcomingMatchesUseCase
@@ -69,16 +72,19 @@ val networkModule = module {
 val dataModule = module {
     single { SeasonApiService(get()) }
     single { TeamApiService(get()) }
+    single { LiveEventsApiService(get()) }
+    single { TeamLogoProvider(get()) }
     single<SeasonRepository> { SeasonRepositoryImpl(get()) }
-    single<MatchRepository> { MatchRepositoryImpl(get(), get()) }
+    single<MatchRepository> { MatchRepositoryImpl(get(), get(), get()) }
 }
 
 val domainModule = module {
     factory { GetSeasonsUseCase(get()) }
     factory { GetUpcomingMatchesUseCase(get()) }
     factory { GetRecentMatchesUseCase(get()) }
+    factory { GetLiveMatchesUseCase(get()) }
 }
 
 val presentationModule = module {
-    viewModel { ScheduleViewModel(get(), get(), get()) }
+    viewModel { ScheduleViewModel(get(), get(), get(), get()) }
 }
