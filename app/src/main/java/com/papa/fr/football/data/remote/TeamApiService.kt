@@ -1,17 +1,28 @@
 package com.papa.fr.football.data.remote
 
-import com.papa.fr.football.data.remote.dto.TeamLogoResponseDto
 import io.ktor.client.HttpClient
-import io.ktor.client.call.body
 import io.ktor.client.request.get
 import io.ktor.client.request.parameter
+import io.ktor.client.statement.body
+import io.ktor.client.statement.contentType
 import io.ktor.http.encodedPath
+import io.ktor.http.ContentType
 
 class TeamApiService(private val httpClient: HttpClient) {
-    suspend fun getTeamLogo(teamId: Int): TeamLogoResponseDto {
-        return httpClient.get {
+    suspend fun getTeamLogo(teamId: Int): TeamLogoRaw {
+        val response = httpClient.get {
             url { encodedPath = "v1/teams/logo" }
             parameter("team_id", teamId)
-        }.body()
+        }
+
+        return TeamLogoRaw(
+            contentType = response.contentType(),
+            body = response.body(),
+        )
     }
 }
+
+data class TeamLogoRaw(
+    val contentType: ContentType?,
+    val body: ByteArray,
+)
