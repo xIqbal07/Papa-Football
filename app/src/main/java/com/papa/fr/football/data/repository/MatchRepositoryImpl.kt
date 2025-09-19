@@ -7,8 +7,6 @@ import com.papa.fr.football.data.remote.SeasonApiService
 import com.papa.fr.football.domain.model.LiveMatch
 import com.papa.fr.football.domain.model.Match
 import com.papa.fr.football.domain.repository.MatchRepository
-import kotlinx.coroutines.async
-import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.channelFlow
 import kotlinx.coroutines.joinAll
@@ -26,31 +24,102 @@ class MatchRepositoryImpl(
     private val liveLogoStateMutex = Mutex()
     private val liveLogoStateBySport = mutableMapOf<Int, LiveLogoPrefetchState>()
 
-    override suspend fun getUpcomingMatches(uniqueTournamentId: Int, seasonId: Int): List<Match> =
-        coroutineScope {
+    override fun getUpcomingMatches(uniqueTournamentId: Int, seasonId: Int): Flow<List<Match>> =
+        channelFlow {
             val events = seasonApiService
                 .getSeasonEvents(uniqueTournamentId, seasonId)
                 .data
                 .events
 
             if (events.isEmpty()) {
-                return@coroutineScope emptyList()
+                send(emptyList())
+                return@channelFlow
             }
 
-            val teamIds = events.flatMap { event ->
-                listOfNotNull(event.homeTeam?.id, event.awayTeam?.id)
-            }.toSet()
+            val orderedTeamIds = events
+                .flatMap { event -> listOfNotNull(event.homeTeam?.id, event.awayTeam?.id) }
+                .distinct()
 
-            val logos = teamIds.associateWith { teamId ->
-                async { teamLogoProvider.getTeamLogo(teamId) }
-            }.mapValues { (_, deferred) -> deferred.await() }
+            val teamIndicesById = mutableMapOf<Int, MutableList<Int>>()
+            val logosByTeamId = mutableMapOf<Int, String>()
+            val matches = MutableList(events.size) { index ->
+                val event = events[index]
+                val homeId = event.homeTeam?.id
+                val awayId = event.awayTeam?.id
 
-            events.map { event ->
+                if (homeId != null) {
+                    teamIndicesById.getOrPut(homeId) { mutableListOf() }.add(index)
+                    teamLogoProvider.peekCachedLogo(homeId)
+                        ?.takeIf { it.isNotBlank() }
+                        ?.let { logosByTeamId[homeId] = it }
+                }
+
+                if (awayId != null) {
+                    teamIndicesById.getOrPut(awayId) { mutableListOf() }.add(index)
+                    teamLogoProvider.peekCachedLogo(awayId)
+                        ?.takeIf { it.isNotBlank() }
+                        ?.let { logosByTeamId[awayId] = it }
+                }
+
                 event.toDomain(
-                    homeLogoBase64 = event.homeTeam?.id?.let { logos[it] },
-                    awayLogoBase64 = event.awayTeam?.id?.let { logos[it] },
+                    homeLogoBase64 = homeId?.let { logosByTeamId[it] },
+                    awayLogoBase64 = awayId?.let { logosByTeamId[it] },
                 )
             }
+
+            val emissionMutex = Mutex()
+            val initialSnapshot = emissionMutex.withLock { matches.toList() }
+            send(initialSnapshot)
+
+            val pendingTeamIds = orderedTeamIds.filterNot { teamId ->
+                logosByTeamId.containsKey(teamId)
+            }
+
+            val jobs = pendingTeamIds.map { teamId ->
+                launch {
+                    val logo = runCatching { teamLogoProvider.getTeamLogo(teamId) }
+                        .getOrElse { "" }
+
+                    if (logo.isBlank()) {
+                        return@launch
+                    }
+
+                    val snapshot = emissionMutex.withLock {
+                        val previous = logosByTeamId[teamId]
+                        if (previous == logo) {
+                            return@withLock null
+                        }
+
+                        logosByTeamId[teamId] = logo
+                        val indices = teamIndicesById[teamId].orEmpty()
+                        var hasChanged = false
+
+                        for (index in indices) {
+                            val event = events[index]
+                            val updated = event.toDomain(
+                                homeLogoBase64 = event.homeTeam?.id?.let { logosByTeamId[it] },
+                                awayLogoBase64 = event.awayTeam?.id?.let { logosByTeamId[it] },
+                            )
+                            if (matches[index] != updated) {
+                                matches[index] = updated
+                                hasChanged = true
+                            }
+                        }
+
+                        if (!hasChanged) {
+                            null
+                        } else {
+                            matches.toList()
+                        }
+                    }
+
+                    if (snapshot != null) {
+                        send(snapshot)
+                    }
+                }
+            }
+
+            jobs.joinAll()
         }
 
     override fun getLiveMatches(sportId: Int): Flow<List<LiveMatch>> = channelFlow {
@@ -63,50 +132,84 @@ class MatchRepositoryImpl(
             return@channelFlow
         }
 
-        val teamIds = events
-            .flatMap { event -> listOfNotNull(event.homeTeam?.id, event.awayTeam?.id) }
-            .toSet()
-
-        val logos = mutableMapOf<Int, String>()
-        teamIds.forEach { teamId ->
-            teamLogoProvider.peekCachedLogo(teamId)
-                ?.takeIf { it.isNotBlank() }
-                ?.let { cachedLogo -> logos[teamId] = cachedLogo }
-        }
-        val emissionMutex = Mutex()
-
-        suspend fun emitSnapshot() {
-            val matches = events.map { event ->
-                event.toLiveDomain(
-                    homeLogoBase64 = event.homeTeam?.id?.let { logos[it] },
-                    awayLogoBase64 = event.awayTeam?.id?.let { logos[it] },
-                )
-            }
-            send(matches)
-        }
-
-        emissionMutex.withLock { emitSnapshot() }
-
         val orderedTeamIds = events
             .flatMap { event -> listOfNotNull(event.homeTeam?.id, event.awayTeam?.id) }
             .distinct()
 
+        val teamIndicesById = mutableMapOf<Int, MutableList<Int>>()
+        val logosByTeamId = mutableMapOf<Int, String>()
+        val matches = MutableList(events.size) { index ->
+            val event = events[index]
+            val homeId = event.homeTeam?.id
+            val awayId = event.awayTeam?.id
+
+            if (homeId != null) {
+                teamIndicesById.getOrPut(homeId) { mutableListOf() }.add(index)
+                teamLogoProvider.peekCachedLogo(homeId)
+                    ?.takeIf { it.isNotBlank() }
+                    ?.let { logosByTeamId[homeId] = it }
+            }
+
+            if (awayId != null) {
+                teamIndicesById.getOrPut(awayId) { mutableListOf() }.add(index)
+                teamLogoProvider.peekCachedLogo(awayId)
+                    ?.takeIf { it.isNotBlank() }
+                    ?.let { logosByTeamId[awayId] = it }
+            }
+
+            event.toLiveDomain(
+                homeLogoBase64 = homeId?.let { logosByTeamId[it] },
+                awayLogoBase64 = awayId?.let { logosByTeamId[it] },
+            )
+        }
+
+        val emissionMutex = Mutex()
+        val initialSnapshot = emissionMutex.withLock { matches.toList() }
+        send(initialSnapshot)
+
         val pendingTeamIds = determineLiveLogoCandidates(
             sportId = sportId,
             orderedTeamIds = orderedTeamIds,
-            cachedTeamIds = logos.keys,
+            cachedTeamIds = logosByTeamId.keys.toSet(),
         )
         val jobs = pendingTeamIds.map { teamId ->
             launch {
                 val logo = runCatching { teamLogoProvider.getTeamLogo(teamId) }.getOrElse { "" }
-                if (logo.isNotBlank()) {
-                    emissionMutex.withLock {
-                        val hasChanged = logos[teamId] != logo
-                        if (hasChanged) {
-                            logos[teamId] = logo
-                            emitSnapshot()
+                if (logo.isBlank()) {
+                    return@launch
+                }
+
+                val snapshot = emissionMutex.withLock {
+                    val previous = logosByTeamId[teamId]
+                    if (previous == logo) {
+                        return@withLock null
+                    }
+
+                    logosByTeamId[teamId] = logo
+                    val indices = teamIndicesById[teamId].orEmpty()
+                    var hasChanged = false
+
+                    for (index in indices) {
+                        val event = events[index]
+                        val updated = event.toLiveDomain(
+                            homeLogoBase64 = event.homeTeam?.id?.let { logosByTeamId[it] },
+                            awayLogoBase64 = event.awayTeam?.id?.let { logosByTeamId[it] },
+                        )
+                        if (matches[index] != updated) {
+                            matches[index] = updated
+                            hasChanged = true
                         }
                     }
+
+                    if (!hasChanged) {
+                        null
+                    } else {
+                        matches.toList()
+                    }
+                }
+
+                if (snapshot != null) {
+                    send(snapshot)
                 }
             }
         }

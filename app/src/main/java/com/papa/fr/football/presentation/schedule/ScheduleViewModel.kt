@@ -191,24 +191,40 @@ class ScheduleViewModel(
                 emitProgress()
 
                 seasons.forEach { season ->
-                    val matchesResult = runCatching {
-                        getUpcomingMatchesUseCase(league.id, season.id)
-                    }
-                    matchesResult.onSuccess { matches ->
-                        matchesByLeagueSeason.getOrPut(league.id) { mutableMapOf() }[season.id] =
-                            matches.map { it.toUiModel() }
-                        matchErrorsByLeagueSeason
-                            .getOrPut(league.id) { mutableMapOf() }[season.id] = null
-                    }
-                    matchesResult.onFailure { throwable ->
-                        matchesByLeagueSeason.getOrPut(league.id) { mutableMapOf() }[season.id] =
-                            emptyList()
-                        matchErrorsByLeagueSeason
-                            .getOrPut(league.id) { mutableMapOf() }[season.id] =
-                            throwable.message ?: DEFAULT_MATCHES_ERROR_MESSAGE
-                    }
+                    var hasEmittedMatches = false
+                    var encounteredMatchesError: String? = null
 
-                    emitProgress()
+                    getUpcomingMatchesUseCase(league.id, season.id)
+                        .onEach { matches ->
+                            hasEmittedMatches = true
+                            matchesByLeagueSeason
+                                .getOrPut(league.id) { mutableMapOf() }[season.id] =
+                                matches.map { it.toUiModel() }
+                            matchErrorsByLeagueSeason
+                                .getOrPut(league.id) { mutableMapOf() }[season.id] = null
+                            emitProgress()
+                        }
+                        .catch { throwable ->
+                            hasEmittedMatches = true
+                            encounteredMatchesError =
+                                throwable.message ?: DEFAULT_MATCHES_ERROR_MESSAGE
+                            matchesByLeagueSeason
+                                .getOrPut(league.id) { mutableMapOf() }[season.id] = emptyList()
+                            matchErrorsByLeagueSeason
+                                .getOrPut(league.id) { mutableMapOf() }[season.id] =
+                                encounteredMatchesError
+                            emitProgress()
+                        }
+                        .onCompletion {
+                            if (!hasEmittedMatches && encounteredMatchesError == null) {
+                                matchesByLeagueSeason
+                                    .getOrPut(league.id) { mutableMapOf() }[season.id] = emptyList()
+                                matchErrorsByLeagueSeason
+                                    .getOrPut(league.id) { mutableMapOf() }[season.id] = null
+                                emitProgress()
+                            }
+                        }
+                        .collect()
                 }
             }
 
