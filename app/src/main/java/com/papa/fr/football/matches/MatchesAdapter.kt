@@ -43,8 +43,12 @@ class MatchesAdapter : ListAdapter<MatchUiModel, RecyclerView.ViewHolder>(DIFF_C
         }
     }
 
-    fun submitMatches(matches: List<MatchUiModel>) {
-        submitList(matches)
+    fun submitMatches(matches: List<MatchUiModel>, onCommitted: (() -> Unit)? = null) {
+        if (onCommitted == null) {
+            submitList(matches)
+        } else {
+            submitList(matches, Runnable { onCommitted() })
+        }
     }
 
     private enum class ViewType { FUTURE, LIVE, PAST }

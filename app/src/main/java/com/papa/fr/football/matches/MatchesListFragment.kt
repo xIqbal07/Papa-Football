@@ -1,6 +1,7 @@
 package com.papa.fr.football.matches
 
 import android.os.Bundle
+import android.os.Parcelable
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -71,7 +72,20 @@ class MatchesListFragment : Fragment() {
             MatchesTabType.LIVE, MatchesTabType.PAST -> emptyList()
         }
 
-        matchesAdapter.submitMatches(matches)
+        val shouldPreserveScroll = matchesAdapter.currentList.isNotEmpty() &&
+            matchesAdapter.currentList.map { it.id } == matches.map { it.id }
+
+        val savedState: Parcelable? = if (shouldPreserveScroll) {
+            binding.rvMatches.layoutManager?.onSaveInstanceState()
+        } else {
+            null
+        }
+
+        matchesAdapter.submitMatches(matches) {
+            if (savedState != null) {
+                binding.rvMatches.layoutManager?.onRestoreInstanceState(savedState)
+            }
+        }
 
         val placeholderText = when {
             matchesType == MatchesTabType.FUTURE && state.isMatchesLoading ->
