@@ -28,7 +28,7 @@ class MatchRepositoryImpl(
     private val teamLogoCache = ConcurrentHashMap<Int, String>()
     private val logoMutex = Mutex()
     @Volatile
-    private var lastLogoRequestAt: Long = 0L
+    private var nextLogoRequestAt: Long = 0L
 
     override suspend fun getUpcomingMatches(uniqueTournamentId: Int, seasonId: Int): List<Match> =
         coroutineScope {
@@ -60,25 +60,33 @@ class MatchRepositoryImpl(
     private suspend fun fetchTeamLogo(teamId: Int): String {
         teamLogoCache[teamId]?.let { return it }
 
-        val sanitizedLogo = logoMutex.withLock {
-            teamLogoCache[teamId]?.let { return it }
+        var cachedLogo: String? = null
+        var waitDurationMs = 0L
 
-            val elapsed = System.currentTimeMillis() - lastLogoRequestAt
-            if (elapsed < LOGO_REQUEST_INTERVAL_MS) {
-                delay(LOGO_REQUEST_INTERVAL_MS - elapsed)
+        logoMutex.withLock {
+            cachedLogo = teamLogoCache[teamId]
+            if (cachedLogo != null) {
+                return@withLock
             }
 
-            val sanitized = runCatching {
-                teamApiService.getTeamLogo(teamId).toSanitizedBase64()
-            }.getOrElse { "" }
+            val now = System.currentTimeMillis()
+            val scheduledStart = maxOf(now, nextLogoRequestAt)
+            waitDurationMs = (scheduledStart - now).coerceAtLeast(0L)
+            nextLogoRequestAt = scheduledStart + LOGO_REQUEST_INTERVAL_MS
+        }
 
-            lastLogoRequestAt = System.currentTimeMillis()
+        cachedLogo?.let { return it }
 
-            if (sanitized.isNotBlank()) {
-                teamLogoCache[teamId] = sanitized
-            }
+        if (waitDurationMs > 0L) {
+            delay(waitDurationMs)
+        }
 
-            sanitized
+        val sanitizedLogo = runCatching {
+            teamApiService.getTeamLogo(teamId).toSanitizedBase64()
+        }.getOrElse { "" }
+
+        if (sanitizedLogo.isNotBlank()) {
+            teamLogoCache[teamId] = sanitizedLogo
         }
 
         return sanitizedLogo
