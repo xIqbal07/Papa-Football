@@ -7,8 +7,6 @@ import com.papa.fr.football.data.remote.SeasonApiService
 import com.papa.fr.football.domain.model.LiveMatch
 import com.papa.fr.football.domain.model.Match
 import com.papa.fr.football.domain.repository.MatchRepository
-import kotlinx.coroutines.async
-import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.channelFlow
 import kotlinx.coroutines.joinAll
@@ -123,47 +121,6 @@ class MatchRepositoryImpl(
 
             jobs.joinAll()
         }
-
-    override suspend fun getRecentMatches(uniqueTournamentId: Int, seasonId: Int): List<Match> {
-        return fetchMatches(
-            uniqueTournamentId = uniqueTournamentId,
-            seasonId = seasonId,
-            courseEvents = "last",
-        )
-    }
-
-    private suspend fun fetchMatches(
-        uniqueTournamentId: Int,
-        seasonId: Int,
-        courseEvents: String,
-    ): List<Match> = coroutineScope {
-        val events = seasonApiService
-            .getSeasonEvents(uniqueTournamentId, seasonId, courseEvents = courseEvents)
-            .data
-            .events
-
-        if (events.isEmpty()) {
-            return@coroutineScope emptyList()
-        }
-
-        val orderedTeamIds = events
-            .flatMap { event -> listOfNotNull(event.homeTeam?.id, event.awayTeam?.id) }
-            .distinct()
-
-        val logoDeferred = orderedTeamIds.associateWith { teamId ->
-            async { runCatching { teamLogoProvider.getTeamLogo(teamId) }.getOrElse { "" } }
-        }
-        val logosByTeamId = logoDeferred.mapValues { (_, logo) ->
-            logo.await().takeIf { it.isNotBlank() }
-        }
-
-        events.map { event ->
-            event.toDomain(
-                homeLogoBase64 = event.homeTeam?.id?.let { logosByTeamId[it] },
-                awayLogoBase64 = event.awayTeam?.id?.let { logosByTeamId[it] },
-            )
-        }
-    }
 
     override fun getLiveMatches(sportId: Int): Flow<List<LiveMatch>> = channelFlow {
         val events = liveEventsApiService

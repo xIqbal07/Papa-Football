@@ -5,8 +5,6 @@ import com.papa.fr.football.data.remote.TeamApiService
 import com.papa.fr.football.data.remote.TeamLogoRaw
 import com.papa.fr.football.data.remote.dto.TeamLogoResponseDto
 import io.ktor.http.ContentType
-import kotlinx.coroutines.CancellationException
-import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -19,7 +17,6 @@ class TeamLogoProvider(
 ) {
 
     private val teamLogoCache = ConcurrentHashMap<Int, String>()
-    private val inFlightRequests = ConcurrentHashMap<Int, CompletableDeferred<String>>()
     private val logoMutex = Mutex()
 
     @Volatile
@@ -28,56 +25,36 @@ class TeamLogoProvider(
     suspend fun getTeamLogo(teamId: Int): String {
         teamLogoCache[teamId]?.let { return it }
 
-        inFlightRequests[teamId]?.let { return it.await() }
+        var cachedLogo: String? = null
+        var waitDurationMs = 0L
 
-        val request = CompletableDeferred<String>()
-        val existing = inFlightRequests.putIfAbsent(teamId, request)
-        if (existing != null) {
-            return existing.await()
+        logoMutex.withLock {
+            cachedLogo = teamLogoCache[teamId]
+            if (cachedLogo != null) {
+                return@withLock
+            }
+
+            val now = timeProvider()
+            val scheduledStart = maxOf(now, nextLogoRequestAt)
+            waitDurationMs = (scheduledStart - now).coerceAtLeast(0L)
+            nextLogoRequestAt = scheduledStart + LOGO_REQUEST_INTERVAL_MS
         }
 
-        return try {
-            var cachedLogo: String? = null
-            var waitDurationMs = 0L
+        cachedLogo?.let { return it }
 
-            logoMutex.withLock {
-                cachedLogo = teamLogoCache[teamId]
-                if (cachedLogo != null) {
-                    inFlightRequests.remove(teamId)
-                    return@withLock
-                }
-
-                val now = timeProvider()
-                val scheduledStart = maxOf(now, nextLogoRequestAt)
-                waitDurationMs = (scheduledStart - now).coerceAtLeast(0L)
-                nextLogoRequestAt = scheduledStart + LOGO_REQUEST_INTERVAL_MS
-            }
-
-            cachedLogo?.let {
-                request.complete(it)
-                return@let
-            }
-
-            if (waitDurationMs > 0L) {
-                delay(waitDurationMs)
-            }
-
-            val sanitizedLogo = runCatching {
-                teamApiService.getTeamLogo(teamId).toSanitizedBase64()
-            }.getOrElse { "" }
-
-            if (sanitizedLogo.isNotBlank()) {
-                teamLogoCache[teamId] = sanitizedLogo
-            }
-
-            request.complete(sanitizedLogo)
-            sanitizedLogo
-        } catch (cancellation: CancellationException) {
-            request.completeExceptionally(cancellation)
-            throw cancellation
-        } finally {
-            inFlightRequests.remove(teamId, request)
+        if (waitDurationMs > 0L) {
+            delay(waitDurationMs)
         }
+
+        val sanitizedLogo = runCatching {
+            teamApiService.getTeamLogo(teamId).toSanitizedBase64()
+        }.getOrElse { "" }
+
+        if (sanitizedLogo.isNotBlank()) {
+            teamLogoCache[teamId] = sanitizedLogo
+        }
+
+        return sanitizedLogo
     }
 
     fun peekCachedLogo(teamId: Int): String? = teamLogoCache[teamId]
@@ -135,7 +112,7 @@ class TeamLogoProvider(
     }
 
     private companion object {
-        private const val LOGO_REQUEST_INTERVAL_MS = 300L
+        private const val LOGO_REQUEST_INTERVAL_MS = 650L
         private const val MIN_BASE64_LENGTH = 32
         private val json = Json { ignoreUnknownKeys = true }
     }

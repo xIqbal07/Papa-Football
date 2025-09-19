@@ -11,7 +11,6 @@ import com.papa.fr.football.data.repository.TeamLogoProvider
 import com.papa.fr.football.domain.repository.MatchRepository
 import com.papa.fr.football.domain.repository.SeasonRepository
 import com.papa.fr.football.domain.usecase.GetLiveMatchesUseCase
-import com.papa.fr.football.domain.usecase.GetRecentMatchesUseCase
 import com.papa.fr.football.domain.usecase.GetSeasonsUseCase
 import com.papa.fr.football.domain.usecase.GetUpcomingMatchesUseCase
 import com.papa.fr.football.presentation.schedule.ScheduleViewModel
@@ -81,10 +80,9 @@ val dataModule = module {
 val domainModule = module {
     factory { GetSeasonsUseCase(get()) }
     factory { GetUpcomingMatchesUseCase(get()) }
-    factory { GetRecentMatchesUseCase(get()) }
     factory { GetLiveMatchesUseCase(get()) }
 }
 
 val presentationModule = module {
-    viewModel { ScheduleViewModel(get(), get(), get(), get()) }
+    viewModel { ScheduleViewModel(get(), get(), get()) }
 }
