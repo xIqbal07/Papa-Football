@@ -10,6 +10,7 @@ import androidx.core.content.ContextCompat
 import com.papa.fr.football.R
 import com.papa.fr.football.databinding.ItemLeagueDropdownBinding
 import androidx.core.content.withStyledAttributes
+import androidx.core.graphics.drawable.toDrawable
 
 class LeagueDropdownView @JvmOverloads constructor(
     context: Context,
@@ -35,6 +36,9 @@ class LeagueDropdownView @JvmOverloads constructor(
         }
 
         binding.actv.setAdapter(adapter)
+        binding.actv.setDropDownBackgroundDrawable(
+            ContextCompat.getColor(context, R.color.matches_card_background).toDrawable()
+        )
         binding.actv.setOnItemClickListener { _, _, position, _ ->
             val value = adapter.getItem(position) ?: return@setOnItemClickListener
             setSelected(value)

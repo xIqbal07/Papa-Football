@@ -41,12 +41,14 @@
             android:dropDownHeight="wrap_content"
             android:dropDownVerticalOffset="0dp"
             android:fontFamily="@font/alexandria_bold"
-            android:textAlignment="center"
+            android:textAlignment="viewStart"
             android:importantForAutofill="no"
             android:inputType="none"
+            android:paddingTop="0dp"
+            android:paddingBottom="0dp"
             android:textColor="@color/white"
             android:textSize="16sp"
-            tools:ignore="labelFor" />
+            tools:ignore="RtlCompat,labelFor" />
 
     </com.google.android.material.textfield.TextInputLayout>
 </androidx.constraintlayout.widget.ConstraintLayout>
