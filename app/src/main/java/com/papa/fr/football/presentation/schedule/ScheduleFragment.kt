@@ -17,6 +17,8 @@ import com.papa.fr.football.presentation.schedule.matches.MatchesListFragment
 import com.papa.fr.football.presentation.schedule.matches.MatchesTabType
 import kotlinx.coroutines.launch
 import org.koin.androidx.viewmodel.ext.android.activityViewModel
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
 import java.util.Calendar
 import java.util.Locale
 
@@ -32,6 +34,8 @@ class ScheduleFragment : Fragment() {
     private var lastSeasonIdsByLeague: Map<Int, List<Int>> = emptyMap()
     private var lastErrorMessage: String? = null
     private var lastSelectedLeagueId: Int? = null
+    private val lastUpdatedFormatter: DateTimeFormatter =
+        DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm", Locale.getDefault())
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -93,6 +97,7 @@ class ScheduleFragment : Fragment() {
         maybeUpdateSeasonData(state)
         maybeSyncSelectedLeague(state)
         maybeShowSeasonError(state)
+        updateLastUpdatedLabel(state)
     }
 
     private fun maybeUpdateSeasonData(state: ScheduleUiState) {
@@ -194,6 +199,15 @@ class ScheduleFragment : Fragment() {
         val startYear = calendar.get(Calendar.YEAR) % 100
         val endYear = (startYear + 1) % 100
         return String.format(Locale.getDefault(), "%02d/%02d", startYear, endYear)
+    }
+
+    private fun updateLastUpdatedLabel(state: ScheduleUiState) {
+        val buttonLabel = state.lastUpdatedAt?.let { instant ->
+            val formattedDate = lastUpdatedFormatter.format(instant.atZone(ZoneId.systemDefault()))
+            getString(R.string.schedule_last_updated, formattedDate)
+        } ?: getString(R.string.schedule_last_updated_placeholder)
+
+        binding.btnSchedule.text = buttonLabel
     }
 
     override fun onDestroyView() {

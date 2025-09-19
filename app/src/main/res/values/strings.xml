@@ -7,6 +7,8 @@
     <string name="matches_placeholder_format">This is the %1$s matches screen.</string>
     <string name="matches_placeholder_empty">There are currently no matches to display.</string>
     <string name="matches_placeholder_loading">Loading upcoming matches…</string>
+    <string name="matches_placeholder_empty_live">There are no live matches right now.</string>
+    <string name="matches_placeholder_loading_live">Loading live matches…</string>
     <string name="bottom_nav_schedule">Schedule</string>
     <string name="bottom_nav_highlights">Highlights</string>
     <string name="bottom_nav_teams">Teams</string>
@@ -18,4 +20,6 @@
     <string name="bottom_nav_placeholder_message">The %1$s screen is coming soon.</string>
     <string name="season_load_error">Unable to load seasons. Please try again.</string>
     <string name="placeholder_coming_soon">Coming soon: %1$s</string>
+    <string name="schedule_last_updated">Updated %1$s</string>
+    <string name="schedule_last_updated_placeholder">Updated --</string>
 </resources>

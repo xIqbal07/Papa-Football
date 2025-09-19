@@ -4,14 +4,21 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.papa.fr.football.R
 import com.papa.fr.football.common.dropdown.LeagueItem
+import com.papa.fr.football.domain.model.LiveMatch
 import com.papa.fr.football.domain.model.Match
 import com.papa.fr.football.domain.model.Season
+import com.papa.fr.football.domain.usecase.GetLiveMatchesUseCase
 import com.papa.fr.football.domain.usecase.GetSeasonsUseCase
 import com.papa.fr.football.domain.usecase.GetUpcomingMatchesUseCase
 import com.papa.fr.football.presentation.schedule.matches.MatchUiModel
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.onCompletion
+import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.time.Instant
@@ -26,10 +33,13 @@ import java.util.concurrent.atomic.AtomicReference
 class ScheduleViewModel(
     private val getSeasonsUseCase: GetSeasonsUseCase,
     private val getUpcomingMatchesUseCase: GetUpcomingMatchesUseCase,
+    private val getLiveMatchesUseCase: GetLiveMatchesUseCase,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(ScheduleUiState())
     val uiState: StateFlow<ScheduleUiState> = _uiState.asStateFlow()
+
+    private var liveMatchesJob: Job? = null
 
     private val _leagueItems = MutableStateFlow(
         listOf(
@@ -81,9 +91,14 @@ class ScheduleViewModel(
      * Loads seasons for every league and progressively emits match updates as each response arrives.
      */
     fun loadAllLeagueSeasons(forceRefresh: Boolean = false) {
+        val refreshInstant = Instant.now()
+        loadLiveMatches(forceRefresh)
         if (!forceRefresh && _uiState.value.isDataLoaded) {
+            _uiState.update { it.copy(lastUpdatedAt = refreshInstant) }
             return
         }
+
+        _uiState.update { it.copy(lastUpdatedAt = refreshInstant) }
 
         viewModelScope.launch {
             val previousState = _uiState.value
@@ -107,6 +122,7 @@ class ScheduleViewModel(
                     matchesByLeagueSeason = emptyMap(),
                     matchErrorsByLeagueSeason = emptyMap(),
                     isDataLoaded = false,
+                    lastUpdatedAt = refreshInstant,
                 )
             }
 
@@ -180,24 +196,40 @@ class ScheduleViewModel(
                 emitProgress()
 
                 seasons.forEach { season ->
-                    val matchesResult = runCatching {
-                        getUpcomingMatchesUseCase(league.id, season.id)
-                    }
-                    matchesResult.onSuccess { matches ->
-                        matchesByLeagueSeason.getOrPut(league.id) { mutableMapOf() }[season.id] =
-                            matches.map { it.toUiModel() }
-                        matchErrorsByLeagueSeason
-                            .getOrPut(league.id) { mutableMapOf() }[season.id] = null
-                    }
-                    matchesResult.onFailure { throwable ->
-                        matchesByLeagueSeason.getOrPut(league.id) { mutableMapOf() }[season.id] =
-                            emptyList()
-                        matchErrorsByLeagueSeason
-                            .getOrPut(league.id) { mutableMapOf() }[season.id] =
-                            throwable.message ?: DEFAULT_MATCHES_ERROR_MESSAGE
-                    }
+                    var hasEmittedMatches = false
+                    var encounteredMatchesError: String? = null
 
-                    emitProgress()
+                    getUpcomingMatchesUseCase(league.id, season.id)
+                        .onEach { matches ->
+                            hasEmittedMatches = true
+                            matchesByLeagueSeason
+                                .getOrPut(league.id) { mutableMapOf() }[season.id] =
+                                matches.map { it.toUiModel() }
+                            matchErrorsByLeagueSeason
+                                .getOrPut(league.id) { mutableMapOf() }[season.id] = null
+                            emitProgress()
+                        }
+                        .catch { throwable ->
+                            hasEmittedMatches = true
+                            encounteredMatchesError =
+                                throwable.message ?: DEFAULT_MATCHES_ERROR_MESSAGE
+                            matchesByLeagueSeason
+                                .getOrPut(league.id) { mutableMapOf() }[season.id] = emptyList()
+                            matchErrorsByLeagueSeason
+                                .getOrPut(league.id) { mutableMapOf() }[season.id] =
+                                encounteredMatchesError
+                            emitProgress()
+                        }
+                        .onCompletion {
+                            if (!hasEmittedMatches && encounteredMatchesError == null) {
+                                matchesByLeagueSeason
+                                    .getOrPut(league.id) { mutableMapOf() }[season.id] = emptyList()
+                                matchErrorsByLeagueSeason
+                                    .getOrPut(league.id) { mutableMapOf() }[season.id] = null
+                                emitProgress()
+                            }
+                        }
+                        .collect()
                 }
             }
 
@@ -271,6 +303,64 @@ class ScheduleViewModel(
         pendingUserSeasonId.set(seasonId)
     }
 
+    private fun loadLiveMatches(forceRefresh: Boolean) {
+        if (!forceRefresh && (liveMatchesJob?.isActive == true || _uiState.value.isLiveMatchesLoading)) {
+            return
+        }
+
+        liveMatchesJob?.cancel()
+        val job = viewModelScope.launch {
+            val jobReference = coroutineContext[Job]
+            var hasEmitted = false
+            _uiState.update {
+                it.copy(
+                    isLiveMatchesLoading = true,
+                    liveMatchesErrorMessage = null,
+                )
+            }
+
+            getLiveMatchesUseCase(LIVE_SPORT_ID)
+                .onEach { matches ->
+                    val uiModels = matches.map { it.toUiModel() }
+                    val shouldClearLoading = !hasEmitted
+                    hasEmitted = true
+                    _uiState.update { state ->
+                        var newState = state.copy(
+                            liveMatches = uiModels,
+                            liveMatchesErrorMessage = null,
+                        )
+                        if (shouldClearLoading) {
+                            newState = newState.copy(isLiveMatchesLoading = false)
+                        }
+                        newState
+                    }
+                }
+                .catch { throwable ->
+                    hasEmitted = true
+                    _uiState.update {
+                        it.copy(
+                            liveMatches = emptyList(),
+                            liveMatchesErrorMessage =
+                                throwable.message ?: DEFAULT_LIVE_MATCHES_ERROR_MESSAGE,
+                            isLiveMatchesLoading = false,
+                        )
+                    }
+                }
+                .onCompletion {
+                    if (liveMatchesJob == jobReference) {
+                        if (!hasEmitted) {
+                            _uiState.update { state ->
+                                state.copy(isLiveMatchesLoading = false)
+                            }
+                        }
+                        liveMatchesJob = null
+                    }
+                }
+                .collect()
+        }
+        liveMatchesJob = job
+    }
+
     private fun determineSelection(
         seasonsByLeague: Map<Int, List<Season>>,
         preferredLeagueId: Int?,
@@ -319,6 +409,21 @@ class ScheduleViewModel(
         )
     }
 
+    private fun LiveMatch.toUiModel(): MatchUiModel.Live {
+        return MatchUiModel.Live(
+            id = id,
+            homeTeamId = homeTeam.id,
+            homeTeamName = homeTeam.name,
+            awayTeamId = awayTeam.id,
+            awayTeamName = awayTeam.name,
+            homeScore = homeScore,
+            awayScore = awayScore,
+            homeLogoBase64 = homeTeam.logoBase64,
+            awayLogoBase64 = awayTeam.logoBase64,
+            statusLabel = status,
+        )
+    }
+
     private fun toInstant(timestamp: Long): Instant {
         return if (timestamp < 1_000_000_000_000L) {
             Instant.ofEpochSecond(timestamp)
@@ -332,5 +437,7 @@ class ScheduleViewModel(
         private val TIME_FORMATTER: DateTimeFormatter = DateTimeFormatter.ofPattern("HH:mm")
         private const val DEFAULT_SEASONS_ERROR_MESSAGE = "Unable to load seasons"
         private const val DEFAULT_MATCHES_ERROR_MESSAGE = "Unable to load matches"
+        private const val DEFAULT_LIVE_MATCHES_ERROR_MESSAGE = "Unable to load live matches"
+        private const val LIVE_SPORT_ID = 1
     }
 }
