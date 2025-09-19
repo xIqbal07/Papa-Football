@@ -5,13 +5,19 @@ import com.papa.fr.football.data.remote.SeasonApiService
 import com.papa.fr.football.data.remote.TeamApiService
 import com.papa.fr.football.domain.model.Match
 import com.papa.fr.football.domain.repository.MatchRepository
+import java.util.concurrent.ConcurrentHashMap
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.sync.Semaphore
+import kotlinx.coroutines.sync.withPermit
 
 class MatchRepositoryImpl(
     private val seasonApiService: SeasonApiService,
     private val teamApiService: TeamApiService,
 ) : MatchRepository {
+
+    private val teamLogoCache = ConcurrentHashMap<Int, String>()
+    private val logoSemaphore = Semaphore(LOGO_REQUEST_CONCURRENCY)
 
     override suspend fun getUpcomingMatches(uniqueTournamentId: Int, seasonId: Int): List<Match> =
         coroutineScope {
@@ -29,11 +35,7 @@ class MatchRepositoryImpl(
             }.toSet()
 
             val logos = teamIds.associateWith { teamId ->
-                async {
-                    runCatching { teamApiService.getTeamLogo(teamId).data }
-                        .map { it.sanitizeBase64() }
-                        .getOrElse { "" }
-                }
+                async { fetchTeamLogo(teamId) }
             }.mapValues { (_, deferred) -> deferred.await() }
 
             events.map { event ->
@@ -43,6 +45,22 @@ class MatchRepositoryImpl(
                 )
             }
         }
+
+    private suspend fun fetchTeamLogo(teamId: Int): String {
+        teamLogoCache[teamId]?.let { return it }
+
+        val sanitizedLogo = logoSemaphore.withPermit {
+            runCatching { teamApiService.getTeamLogo(teamId).data }
+                .map { it.sanitizeBase64() }
+                .getOrElse { "" }
+        }
+
+        if (sanitizedLogo.isNotBlank()) {
+            teamLogoCache[teamId] = sanitizedLogo
+        }
+
+        return sanitizedLogo
+    }
 
     private fun String?.sanitizeBase64(): String {
         if (this.isNullOrBlank()) return ""
@@ -54,5 +72,9 @@ class MatchRepositoryImpl(
             this
         }
         return trimmed.trim()
+    }
+
+    private companion object {
+        private const val LOGO_REQUEST_CONCURRENCY = 3
     }
 }
