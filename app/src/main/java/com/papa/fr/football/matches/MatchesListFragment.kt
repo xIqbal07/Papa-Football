@@ -7,7 +7,17 @@ import android.view.ViewGroup
 import androidx.core.os.bundleOf
 import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
+import com.google.android.material.snackbar.Snackbar
+import com.papa.fr.football.R
 import com.papa.fr.football.databinding.FragmentMatchesListBinding
+import com.papa.fr.football.presentation.schedule.ScheduleUiState
+import com.papa.fr.football.presentation.schedule.ScheduleViewModel
+import java.util.Locale
+import kotlinx.coroutines.launch
+import org.koin.androidx.viewmodel.ext.android.sharedViewModel
 
 class MatchesListFragment : Fragment() {
 
@@ -15,12 +25,22 @@ class MatchesListFragment : Fragment() {
     private val binding: FragmentMatchesListBinding
         get() = requireNotNull(_binding)
 
+    private val scheduleViewModel: ScheduleViewModel by sharedViewModel(from = { requireParentFragment() })
     private val matchesAdapter = MatchesAdapter()
+    private var lastErrorMessage: String? = null
+    private lateinit var matchesType: MatchesTabType
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        matchesType = requireArguments().getString(ARG_TYPE)
+            ?.let { runCatching { MatchesTabType.valueOf(it) }.getOrNull() }
+            ?: MatchesTabType.FUTURE
+    }
 
     override fun onCreateView(
         inflater: LayoutInflater,
         container: ViewGroup?,
-        savedInstanceState: Bundle?
+        savedInstanceState: Bundle?,
     ): View {
         _binding = FragmentMatchesListBinding.inflate(inflater, container, false)
         return binding.root
@@ -30,19 +50,13 @@ class MatchesListFragment : Fragment() {
         super.onViewCreated(view, savedInstanceState)
         binding.rvMatches.adapter = matchesAdapter
 
-        val matchesType = requireArguments().getString(ARG_TYPE)
-            ?.let { runCatching { MatchesTabType.valueOf(it) }.getOrNull() }
-            ?: MatchesTabType.FUTURE
-
-        val matches = when (matchesType) {
-            MatchesTabType.FUTURE -> demoFutureMatches()
-            MatchesTabType.LIVE -> demoLiveMatches()
-            MatchesTabType.PAST -> demoPastMatches()
+        viewLifecycleOwner.lifecycleScope.launch {
+            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                scheduleViewModel.uiState.collect { state ->
+                    updateMatches(state)
+                }
+            }
         }
-
-        matchesAdapter.submitMatches(matches)
-        binding.tvPlaceholder.isVisible = matches.isEmpty()
-        binding.rvMatches.isVisible = matches.isNotEmpty()
     }
 
     override fun onDestroyView() {
@@ -51,68 +65,46 @@ class MatchesListFragment : Fragment() {
         _binding = null
     }
 
-    private fun demoFutureMatches(): List<MatchUiModel> = listOf(
-        MatchUiModel.Future(
-            id = "future-1",
-            homeTeam = "Royal Vallecano",
-            awayTeam = "Real Betis",
-            homeStartTime = "Today 10:00",
-            homeLogoBase64 = "",
-            awayLogoBase64 = "",
-            odds = MatchUiModel.Odds("2.2", "3.1", "2.9"),
-        ),
-        MatchUiModel.Future(
-            id = "future-2",
-            homeTeam = "Villarreal",
-            awayTeam = "Barcelona",
-            homeStartTime = "Tommorow 10:00",
-            homeLogoBase64 = "",
-            awayLogoBase64 = "",
-            odds = MatchUiModel.Odds("2.2", "3.1", "2.9"),
-        ),
-    )
+    private fun updateMatches(state: ScheduleUiState) {
+        val matches = when (matchesType) {
+            MatchesTabType.FUTURE -> state.futureMatches
+            MatchesTabType.LIVE, MatchesTabType.PAST -> emptyList()
+        }
 
-    private fun demoLiveMatches(): List<MatchUiModel> = listOf(
-        MatchUiModel.Live(
-            id = "live-1",
-            homeTeam = "Royal Vallecano",
-            awayTeam = "Real Betis",
-            score = "0-1",
-            contextText = "Today 20:00",
-            elapsed = "55'",
-            status = "Live"
-        ),
-        MatchUiModel.Live(
-            id = "live-2",
-            homeTeam = "Eibar",
-            awayTeam = "Valencia",
-            score = "1-1",
-            contextText = "Today 19:00",
-            elapsed = "63'",
-            status = "Live"
-        )
-    )
+        matchesAdapter.submitMatches(matches)
 
-    private fun demoPastMatches(): List<MatchUiModel> = listOf(
-        MatchUiModel.Past(
-            id = "past-1",
-            homeTeam = "Royal Vallecano",
-            awayTeam = "Real Betis",
-            score = "2-3",
-            date = "01.08.2025",
-            resultLabel = "FT",
-            status = "Full Time"
-        ),
-        MatchUiModel.Past(
-            id = "past-2",
-            homeTeam = "Sevilla",
-            awayTeam = "Real Madrid",
-            score = "1-2",
-            date = "28.07.2025",
-            resultLabel = "FT",
-            status = "Full Time"
-        )
-    )
+        val placeholderText = when {
+            matchesType == MatchesTabType.FUTURE && state.isMatchesLoading ->
+                getString(R.string.matches_placeholder_loading)
+
+            matchesType == MatchesTabType.FUTURE && !state.matchesErrorMessage.isNullOrBlank() ->
+                state.matchesErrorMessage
+
+            matchesType == MatchesTabType.FUTURE -> getString(R.string.matches_placeholder_empty)
+
+            else -> getString(
+                R.string.matches_placeholder_format,
+                matchesType.name.lowercase(Locale.getDefault())
+            )
+        }
+
+        val showPlaceholder = matches.isEmpty()
+        binding.tvPlaceholder.isVisible = showPlaceholder
+        if (showPlaceholder) {
+            binding.tvPlaceholder.text = placeholderText
+        }
+        binding.rvMatches.isVisible = matches.isNotEmpty()
+
+        if (matchesType == MatchesTabType.FUTURE) {
+            val errorMessage = state.matchesErrorMessage?.ifBlank { getString(R.string.matches_placeholder_empty) }
+            if (!errorMessage.isNullOrBlank() && errorMessage != lastErrorMessage) {
+                lastErrorMessage = errorMessage
+                Snackbar.make(binding.root, errorMessage, Snackbar.LENGTH_LONG).show()
+            } else if (errorMessage.isNullOrBlank()) {
+                lastErrorMessage = null
+            }
+        }
+    }
 
     companion object {
         private const val ARG_TYPE = "arg_type"
