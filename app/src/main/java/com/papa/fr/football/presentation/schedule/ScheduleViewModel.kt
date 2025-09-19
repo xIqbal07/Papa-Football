@@ -8,15 +8,17 @@ import com.papa.fr.football.domain.model.LiveMatch
 import com.papa.fr.football.domain.model.Match
 import com.papa.fr.football.domain.model.Season
 import com.papa.fr.football.domain.usecase.GetLiveMatchesUseCase
+import com.papa.fr.football.domain.usecase.GetRecentMatchesUseCase
 import com.papa.fr.football.domain.usecase.GetSeasonsUseCase
 import com.papa.fr.football.domain.usecase.GetUpcomingMatchesUseCase
 import com.papa.fr.football.presentation.schedule.matches.MatchUiModel
+import com.papa.fr.football.presentation.schedule.matches.MatchesTabType
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.onCompletion
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.update
@@ -33,6 +35,7 @@ import java.util.concurrent.atomic.AtomicReference
 class ScheduleViewModel(
     private val getSeasonsUseCase: GetSeasonsUseCase,
     private val getUpcomingMatchesUseCase: GetUpcomingMatchesUseCase,
+    private val getRecentMatchesUseCase: GetRecentMatchesUseCase,
     private val getLiveMatchesUseCase: GetLiveMatchesUseCase,
 ) : ViewModel() {
 
@@ -77,10 +80,13 @@ class ScheduleViewModel(
     )
     val leagueItems: StateFlow<List<LeagueItem>> = _leagueItems.asStateFlow()
 
+    private val loadingPastMatches = mutableSetOf<Pair<Int, Int>>()
+
     fun defaultLeagueLabel(): String = _leagueItems.value.firstOrNull()?.name.orEmpty()
 
     fun seasonsForLeague(leagueId: Int): List<Season> {
-        return _uiState.value.seasonsByLeague[leagueId].orEmpty()
+        val seasons = _uiState.value.seasonsByLeague[leagueId].orEmpty()
+        return filterSeasonsForTab(seasons, _uiState.value.selectedMatchesTab)
     }
 
     // Remembers the user's last manual selection so background reloads don't override it.
@@ -112,6 +118,8 @@ class ScheduleViewModel(
             var encounteredSeasonError: String? = null
             var processedLeagueCount = 0
 
+            loadingPastMatches.clear()
+
             _uiState.update {
                 it.copy(
                     isLoading = true,
@@ -121,6 +129,11 @@ class ScheduleViewModel(
                     futureMatches = emptyList(),
                     matchesByLeagueSeason = emptyMap(),
                     matchErrorsByLeagueSeason = emptyMap(),
+                    pastMatches = emptyList(),
+                    isPastMatchesLoading = false,
+                    pastMatchesErrorMessage = null,
+                    pastMatchesByLeagueSeason = emptyMap(),
+                    pastMatchErrorsByLeagueSeason = emptyMap(),
                     isDataLoaded = false,
                     lastUpdatedAt = refreshInstant,
                 )
@@ -129,10 +142,12 @@ class ScheduleViewModel(
             fun emitProgress() {
                 val preferredLeagueId = pendingUserLeagueId.get() ?: desiredLeagueId
                 val preferredSeasonId = pendingUserSeasonId.get() ?: desiredSeasonId
+                val currentTab = _uiState.value.selectedMatchesTab
                 val (resolvedLeagueId, resolvedSeasonId) = determineSelection(
                     seasonsByLeague = seasonsByLeague,
                     preferredLeagueId = preferredLeagueId,
                     preferredSeasonId = preferredSeasonId,
+                    tabType = currentTab,
                 )
                 desiredLeagueId = resolvedLeagueId
                 desiredSeasonId = resolvedSeasonId
@@ -195,42 +210,41 @@ class ScheduleViewModel(
                 processedLeagueCount += 1
                 emitProgress()
 
-                seasons.forEach { season ->
-                    var hasEmittedMatches = false
-                    var encounteredMatchesError: String? = null
+                val latestSeason = seasons.firstOrNull() ?: return@forEach
+                var hasEmittedMatches = false
+                var encounteredMatchesError: String? = null
 
-                    getUpcomingMatchesUseCase(league.id, season.id)
-                        .onEach { matches ->
-                            hasEmittedMatches = true
+                getUpcomingMatchesUseCase(league.id, latestSeason.id)
+                    .onEach { matches ->
+                        hasEmittedMatches = true
+                        matchesByLeagueSeason
+                            .getOrPut(league.id) { mutableMapOf() }[latestSeason.id] =
+                            matches.map { it.toFutureUiModel() }
+                        matchErrorsByLeagueSeason
+                            .getOrPut(league.id) { mutableMapOf() }[latestSeason.id] = null
+                        emitProgress()
+                    }
+                    .catch { throwable ->
+                        hasEmittedMatches = true
+                        encounteredMatchesError =
+                            throwable.message ?: DEFAULT_MATCHES_ERROR_MESSAGE
+                        matchesByLeagueSeason
+                            .getOrPut(league.id) { mutableMapOf() }[latestSeason.id] = emptyList()
+                        matchErrorsByLeagueSeason
+                            .getOrPut(league.id) { mutableMapOf() }[latestSeason.id] =
+                            encounteredMatchesError
+                        emitProgress()
+                    }
+                    .onCompletion {
+                        if (!hasEmittedMatches && encounteredMatchesError == null) {
                             matchesByLeagueSeason
-                                .getOrPut(league.id) { mutableMapOf() }[season.id] =
-                                matches.map { it.toUiModel() }
+                                .getOrPut(league.id) { mutableMapOf() }[latestSeason.id] = emptyList()
                             matchErrorsByLeagueSeason
-                                .getOrPut(league.id) { mutableMapOf() }[season.id] = null
+                                .getOrPut(league.id) { mutableMapOf() }[latestSeason.id] = null
                             emitProgress()
                         }
-                        .catch { throwable ->
-                            hasEmittedMatches = true
-                            encounteredMatchesError =
-                                throwable.message ?: DEFAULT_MATCHES_ERROR_MESSAGE
-                            matchesByLeagueSeason
-                                .getOrPut(league.id) { mutableMapOf() }[season.id] = emptyList()
-                            matchErrorsByLeagueSeason
-                                .getOrPut(league.id) { mutableMapOf() }[season.id] =
-                                encounteredMatchesError
-                            emitProgress()
-                        }
-                        .onCompletion {
-                            if (!hasEmittedMatches && encounteredMatchesError == null) {
-                                matchesByLeagueSeason
-                                    .getOrPut(league.id) { mutableMapOf() }[season.id] = emptyList()
-                                matchErrorsByLeagueSeason
-                                    .getOrPut(league.id) { mutableMapOf() }[season.id] = null
-                                emitProgress()
-                            }
-                        }
-                        .collect()
-                }
+                    }
+                    .collect()
             }
 
             emitProgress()
@@ -241,40 +255,141 @@ class ScheduleViewModel(
         loadAllLeagueSeasons(forceRefresh = true)
     }
 
-    fun onLeagueSelected(leagueId: Int) {
+    fun onMatchesTabSelected(tabType: MatchesTabType) {
+        if (_uiState.value.selectedMatchesTab == tabType) {
+            return
+        }
+
         _uiState.update { state ->
-            val seasons = state.seasonsByLeague[leagueId].orEmpty()
+            val leagueId = state.selectedLeagueId
+            val seasons = leagueId?.let { state.seasonsByLeague[it].orEmpty() }.orEmpty()
+            val filteredSeasons = filterSeasonsForTab(seasons, tabType)
             val currentSeasonId = state.selectedSeasonId
             val validSeasonId = when {
-                seasons.isEmpty() -> null
-                seasons.any { it.id == currentSeasonId } -> currentSeasonId
-                else -> seasons.firstOrNull()?.id
+                filteredSeasons.isEmpty() -> null
+                currentSeasonId != null && filteredSeasons.any { it.id == currentSeasonId } ->
+                    currentSeasonId
+
+                else -> filteredSeasons.firstOrNull()?.id
             }
 
-            val leagueMatches = state.matchesByLeagueSeason[leagueId]
-            val matches = validSeasonId?.let { season ->
-                leagueMatches?.get(season).orEmpty()
+            val futureMatchesMap = leagueId?.let { state.matchesByLeagueSeason[it] }
+            val futureMatches = if (leagueId != null && validSeasonId != null) {
+                futureMatchesMap?.get(validSeasonId).orEmpty()
+            } else {
+                emptyList()
+            }
+            val futureError = if (leagueId != null && validSeasonId != null) {
+                state.matchErrorsByLeagueSeason[leagueId]?.get(validSeasonId)
+                    ?.takeUnless { it.isNullOrBlank() }
+            } else {
+                null
+            }
+            val isFutureLoaded = if (validSeasonId == null) {
+                true
+            } else {
+                futureMatchesMap?.containsKey(validSeasonId) == true
+            }
+
+            val pastMatchesMap = leagueId?.let { state.pastMatchesByLeagueSeason[it] }
+            val pastMatches = if (leagueId != null && validSeasonId != null) {
+                pastMatchesMap?.get(validSeasonId).orEmpty()
+            } else {
+                emptyList()
+            }
+            val pastError = if (leagueId != null && validSeasonId != null) {
+                state.pastMatchErrorsByLeagueSeason[leagueId]?.get(validSeasonId)
+                    ?.takeUnless { it.isNullOrBlank() }
+            } else {
+                null
+            }
+            val isPastLoaded = if (leagueId == null || validSeasonId == null) {
+                true
+            } else {
+                pastMatchesMap?.containsKey(validSeasonId) == true ||
+                    loadingPastMatches.contains(leagueId to validSeasonId)
+            }
+
+            state.copy(
+                selectedMatchesTab = tabType,
+                selectedSeasonId = validSeasonId,
+                futureMatches = futureMatches,
+                matchesErrorMessage = futureError,
+                isMatchesLoading = !isFutureLoaded,
+                pastMatches = pastMatches,
+                pastMatchesErrorMessage = pastError,
+                isPastMatchesLoading = !isPastLoaded,
+            )
+        }
+        pendingUserSeasonId.set(_uiState.value.selectedSeasonId)
+        when (tabType) {
+            MatchesTabType.Past -> {
+                val currentState = _uiState.value
+                loadPastMatchesIfNeeded(currentState.selectedLeagueId, currentState.selectedSeasonId)
+            }
+
+            MatchesTabType.Live -> loadLiveMatches(forceRefresh = false)
+            MatchesTabType.Future -> Unit
+        }
+    }
+
+    fun onLeagueSelected(leagueId: Int) {
+        _uiState.update { state ->
+            val allSeasons = state.seasonsByLeague[leagueId].orEmpty()
+            val filteredSeasons = filterSeasonsForTab(allSeasons, state.selectedMatchesTab)
+            val currentSeasonId = state.selectedSeasonId
+            val validSeasonId = when {
+                filteredSeasons.isEmpty() -> null
+                currentSeasonId != null && filteredSeasons.any { it.id == currentSeasonId } ->
+                    currentSeasonId
+
+                else -> filteredSeasons.firstOrNull()?.id
+            }
+
+            val futureMatchesMap = state.matchesByLeagueSeason[leagueId]
+            val futureMatches = validSeasonId?.let { season ->
+                futureMatchesMap?.get(season).orEmpty()
             }.orEmpty()
-            val matchesError = validSeasonId?.let { season ->
+            val futureError = validSeasonId?.let { season ->
                 state.matchErrorsByLeagueSeason[leagueId]?.get(season)
             }?.takeUnless { it.isNullOrBlank() }
 
-            val isSelectionLoaded = if (validSeasonId == null) {
+            val pastMatchesMap = state.pastMatchesByLeagueSeason[leagueId]
+            val pastMatches = validSeasonId?.let { season ->
+                pastMatchesMap?.get(season).orEmpty()
+            }.orEmpty()
+            val pastError = validSeasonId?.let { season ->
+                state.pastMatchErrorsByLeagueSeason[leagueId]?.get(season)
+            }?.takeUnless { it.isNullOrBlank() }
+
+            val isFutureLoaded = if (validSeasonId == null) {
                 true
             } else {
-                leagueMatches?.containsKey(validSeasonId) == true
+                futureMatchesMap?.containsKey(validSeasonId) == true
+            }
+            val isPastLoaded = if (validSeasonId == null) {
+                true
+            } else {
+                pastMatchesMap?.containsKey(validSeasonId) == true ||
+                    loadingPastMatches.contains(leagueId to validSeasonId)
             }
 
             state.copy(
                 selectedLeagueId = leagueId,
                 selectedSeasonId = validSeasonId,
-                futureMatches = matches,
-                matchesErrorMessage = matchesError,
-                isMatchesLoading = !isSelectionLoaded,
+                futureMatches = futureMatches,
+                matchesErrorMessage = futureError,
+                isMatchesLoading = !isFutureLoaded,
+                pastMatches = pastMatches,
+                pastMatchesErrorMessage = pastError,
+                isPastMatchesLoading = !isPastLoaded,
             )
         }
         pendingUserLeagueId.set(leagueId)
         pendingUserSeasonId.set(_uiState.value.selectedSeasonId)
+        if (_uiState.value.selectedMatchesTab == MatchesTabType.Past) {
+            loadPastMatchesIfNeeded(leagueId, _uiState.value.selectedSeasonId)
+        }
     }
 
     fun onSeasonSelected(seasonId: Int) {
@@ -288,19 +403,100 @@ class ScheduleViewModel(
         }
 
         _uiState.update { state ->
-            val leagueMatches = state.matchesByLeagueSeason[leagueId]
-            val matches = leagueMatches?.get(seasonId).orEmpty()
-            val matchesError = state.matchErrorsByLeagueSeason[leagueId]?.get(seasonId)
+            val futureMatchesMap = state.matchesByLeagueSeason[leagueId]
+            val futureMatches = futureMatchesMap?.get(seasonId).orEmpty()
+            val futureError = state.matchErrorsByLeagueSeason[leagueId]?.get(seasonId)
                 ?.takeUnless { it.isNullOrBlank() }
-            val isSelectionLoaded = leagueMatches?.containsKey(seasonId) == true
+            val isFutureLoaded = futureMatchesMap?.containsKey(seasonId) == true
+
+            val pastMatchesMap = state.pastMatchesByLeagueSeason[leagueId]
+            val pastMatches = pastMatchesMap?.get(seasonId).orEmpty()
+            val pastError = state.pastMatchErrorsByLeagueSeason[leagueId]?.get(seasonId)
+                ?.takeUnless { it.isNullOrBlank() }
+            val isPastLoaded = pastMatchesMap?.containsKey(seasonId) == true ||
+                loadingPastMatches.contains(leagueId to seasonId)
+
             state.copy(
                 selectedSeasonId = seasonId,
-                futureMatches = matches,
-                matchesErrorMessage = matchesError,
-                isMatchesLoading = !isSelectionLoaded,
+                futureMatches = futureMatches,
+                matchesErrorMessage = futureError,
+                isMatchesLoading = !isFutureLoaded,
+                pastMatches = pastMatches,
+                pastMatchesErrorMessage = pastError,
+                isPastMatchesLoading = !isPastLoaded,
             )
         }
         pendingUserSeasonId.set(seasonId)
+        if (_uiState.value.selectedMatchesTab == MatchesTabType.Past) {
+            loadPastMatchesIfNeeded(leagueId, seasonId)
+        }
+    }
+
+    private fun loadPastMatchesIfNeeded(leagueId: Int?, seasonId: Int?) {
+        if (leagueId == null || seasonId == null) {
+            return
+        }
+        if (_uiState.value.pastMatchesByLeagueSeason[leagueId]?.containsKey(seasonId) == true) {
+            return
+        }
+        if (!loadingPastMatches.add(leagueId to seasonId)) {
+            return
+        }
+
+        _uiState.update { state ->
+            if (state.selectedLeagueId == leagueId && state.selectedSeasonId == seasonId) {
+                state.copy(
+                    isPastMatchesLoading = true,
+                    pastMatchesErrorMessage = null,
+                )
+            } else {
+                state
+            }
+        }
+
+        viewModelScope.launch {
+            val result = runCatching { getRecentMatchesUseCase(leagueId, seasonId) }
+            val matches = result.getOrElse { emptyList() }
+            val matchesUi = matches.map { it.toPastUiModel() }
+            val errorMessage = result.exceptionOrNull()?.message ?: DEFAULT_MATCHES_ERROR_MESSAGE
+            loadingPastMatches.remove(leagueId to seasonId)
+
+            _uiState.update { state ->
+                val updatedPastMatchesByLeague = state.pastMatchesByLeagueSeason
+                    .toMutableMap()
+                    .apply {
+                        val leagueMap = getOrPut(leagueId) { emptyMap() }.toMutableMap()
+                        leagueMap[seasonId] = matchesUi
+                        put(leagueId, leagueMap)
+                    }
+                val updatedErrorsByLeague = state.pastMatchErrorsByLeagueSeason
+                    .toMutableMap()
+                    .apply {
+                        val leagueErrors = getOrPut(leagueId) { emptyMap() }.toMutableMap()
+                        leagueErrors[seasonId] = if (result.isSuccess) null else errorMessage
+                        put(leagueId, leagueErrors)
+                    }
+
+                val isCurrentSelection =
+                    state.selectedLeagueId == leagueId && state.selectedSeasonId == seasonId
+
+                state.copy(
+                    pastMatchesByLeagueSeason = updatedPastMatchesByLeague,
+                    pastMatchErrorsByLeagueSeason = updatedErrorsByLeague,
+                    pastMatches = if (isCurrentSelection) matchesUi else state.pastMatches,
+                    pastMatchesErrorMessage = if (isCurrentSelection) {
+                        if (result.isSuccess) null else errorMessage
+                    } else {
+                        state.pastMatchesErrorMessage
+                    },
+                    isPastMatchesLoading = if (isCurrentSelection) {
+                        false
+                    } else {
+                        state.isPastMatchesLoading
+                    },
+                )
+            }
+        }
     }
 
     private fun loadLiveMatches(forceRefresh: Boolean) {
@@ -365,6 +561,7 @@ class ScheduleViewModel(
         seasonsByLeague: Map<Int, List<Season>>,
         preferredLeagueId: Int?,
         preferredSeasonId: Int?,
+        tabType: MatchesTabType,
     ): Pair<Int?, Int?> {
         val availableLeagueIds = _leagueItems.value.map { it.id }
         val resolvedLeagueId = when {
@@ -375,18 +572,29 @@ class ScheduleViewModel(
         }
 
         val seasons = resolvedLeagueId?.let { seasonsByLeague[it] }.orEmpty()
+        val filteredSeasons = filterSeasonsForTab(seasons, tabType)
         val resolvedSeasonId = when {
-            seasons.isEmpty() -> null
-            preferredSeasonId != null && seasons.any { it.id == preferredSeasonId } ->
+            filteredSeasons.isEmpty() -> null
+            preferredSeasonId != null && filteredSeasons.any { it.id == preferredSeasonId } ->
                 preferredSeasonId
 
-            else -> seasons.firstOrNull()?.id
+            else -> filteredSeasons.firstOrNull()?.id
         }
 
         return resolvedLeagueId to resolvedSeasonId
     }
 
-    private fun Match.toUiModel(): MatchUiModel.Future {
+    private fun filterSeasonsForTab(
+        seasons: List<Season>,
+        tabType: MatchesTabType,
+    ): List<Season> {
+        return when (tabType) {
+            MatchesTabType.Future, MatchesTabType.Live -> seasons.take(1)
+            MatchesTabType.Past -> seasons.take(10)
+        }
+    }
+
+    private fun Match.toFutureUiModel(): MatchUiModel.Future {
         val instant = toInstant(startTimestamp)
         val zonedDateTime = instant.atZone(ZoneId.systemDefault())
         val dateLabel = zonedDateTime.format(DATE_FORMATTER)
@@ -409,6 +617,23 @@ class ScheduleViewModel(
         )
     }
 
+    private fun Match.toPastUiModel(): MatchUiModel.Past {
+        val instant = toInstant(startTimestamp)
+        val zonedDateTime = instant.atZone(ZoneId.systemDefault())
+        val dateLabel = zonedDateTime.format(PAST_DATE_FORMATTER)
+        val scoreLabel = formatScore(homeScore, awayScore)
+
+        return MatchUiModel.Past(
+            id = id,
+            homeTeamName = homeTeam.name,
+            awayTeamName = awayTeam.name,
+            startDateLabel = dateLabel,
+            scoreLabel = scoreLabel,
+            homeLogoBase64 = homeTeam.logoBase64,
+            awayLogoBase64 = awayTeam.logoBase64,
+        )
+    }
+
     private fun LiveMatch.toUiModel(): MatchUiModel.Live {
         return MatchUiModel.Live(
             id = id,
@@ -424,6 +649,17 @@ class ScheduleViewModel(
         )
     }
 
+    private fun formatScore(homeScore: Int?, awayScore: Int?): String {
+        if (homeScore == null || awayScore == null) {
+            return SCORE_PLACEHOLDER
+        }
+        return buildString {
+            append(homeScore)
+            append(':')
+            append(awayScore)
+        }
+    }
+
     private fun toInstant(timestamp: Long): Instant {
         return if (timestamp < 1_000_000_000_000L) {
             Instant.ofEpochSecond(timestamp)
@@ -435,6 +671,8 @@ class ScheduleViewModel(
     companion object {
         private val DATE_FORMATTER: DateTimeFormatter = DateTimeFormatter.ofPattern("MMM dd")
         private val TIME_FORMATTER: DateTimeFormatter = DateTimeFormatter.ofPattern("HH:mm")
+        private val PAST_DATE_FORMATTER: DateTimeFormatter = DateTimeFormatter.ofPattern("dd.MM.yyyy")
+        private const val SCORE_PLACEHOLDER = "-"
         private const val DEFAULT_SEASONS_ERROR_MESSAGE = "Unable to load seasons"
         private const val DEFAULT_MATCHES_ERROR_MESSAGE = "Unable to load matches"
         private const val DEFAULT_LIVE_MATCHES_ERROR_MESSAGE = "Unable to load live matches"
