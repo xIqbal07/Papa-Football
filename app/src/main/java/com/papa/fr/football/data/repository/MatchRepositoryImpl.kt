@@ -15,12 +15,16 @@ import kotlinx.coroutines.joinAll
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import java.util.LinkedHashSet
 
 class MatchRepositoryImpl(
     private val seasonApiService: SeasonApiService,
     private val liveEventsApiService: LiveEventsApiService,
     private val teamLogoProvider: TeamLogoProvider,
 ) : MatchRepository {
+
+    private val liveLogoStateMutex = Mutex()
+    private val liveLogoStateBySport = mutableMapOf<Int, LiveLogoPrefetchState>()
 
     override suspend fun getUpcomingMatches(uniqueTournamentId: Int, seasonId: Int): List<Match> =
         coroutineScope {
@@ -83,12 +87,15 @@ class MatchRepositoryImpl(
 
         emissionMutex.withLock { emitSnapshot() }
 
-        val prioritizedTeamIds = events
-            .take(MAX_EVENTS_FOR_LOGOS)
+        val orderedTeamIds = events
             .flatMap { event -> listOfNotNull(event.homeTeam?.id, event.awayTeam?.id) }
             .distinct()
 
-        val pendingTeamIds = prioritizedTeamIds.filterNot { logos.containsKey(it) }
+        val pendingTeamIds = determineLiveLogoCandidates(
+            sportId = sportId,
+            orderedTeamIds = orderedTeamIds,
+            cachedTeamIds = logos.keys,
+        )
         val jobs = pendingTeamIds.map { teamId ->
             launch {
                 val logo = runCatching { teamLogoProvider.getTeamLogo(teamId) }.getOrElse { "" }
@@ -108,6 +115,103 @@ class MatchRepositoryImpl(
     }
 
     private companion object {
-        const val MAX_EVENTS_FOR_LOGOS = 50
+        private const val TOP_TEAM_LOGO_PREFETCH_COUNT = 12
+        private const val MAX_TEAM_LOGO_REQUESTS_PER_REFRESH = 28
     }
+
+    private suspend fun determineLiveLogoCandidates(
+        sportId: Int,
+        orderedTeamIds: List<Int>,
+        cachedTeamIds: Set<Int>,
+    ): List<Int> {
+        if (orderedTeamIds.isEmpty()) {
+            return emptyList()
+        }
+
+        val missingTeamIds = orderedTeamIds.filterNot { cachedTeamIds.contains(it) }
+        if (missingTeamIds.isEmpty()) {
+            return emptyList()
+        }
+
+        val maxRequests = MAX_TEAM_LOGO_REQUESTS_PER_REFRESH.coerceAtMost(missingTeamIds.size)
+        val topPriority = missingTeamIds.take(TOP_TEAM_LOGO_PREFETCH_COUNT)
+        if (topPriority.size >= maxRequests) {
+            return topPriority.take(maxRequests)
+        }
+
+        val additionalCapacity = maxRequests - topPriority.size
+        val rotatingCandidates = missingTeamIds.drop(TOP_TEAM_LOGO_PREFETCH_COUNT)
+        val scheduleSignature = orderedTeamIds.signature()
+        val rotatingSelection = selectRotatingLiveLogoCandidates(
+            sportId = sportId,
+            scheduleSignature = scheduleSignature,
+            rotatingCandidates = rotatingCandidates,
+            maxCount = additionalCapacity,
+        )
+
+        return (topPriority + rotatingSelection)
+            .distinct()
+            .take(maxRequests)
+    }
+
+    private suspend fun selectRotatingLiveLogoCandidates(
+        sportId: Int,
+        scheduleSignature: Int,
+        rotatingCandidates: List<Int>,
+        maxCount: Int,
+    ): List<Int> {
+        if (maxCount <= 0 || rotatingCandidates.isEmpty()) {
+            return emptyList()
+        }
+
+        val uniqueCandidates = LinkedHashSet(rotatingCandidates).toList()
+        if (uniqueCandidates.isEmpty()) {
+            return emptyList()
+        }
+
+        val selection = liveLogoStateMutex.withLock {
+            val existing = liveLogoStateBySport[sportId]
+            val current = if (existing == null || existing.signature != scheduleSignature) {
+                LiveLogoPrefetchState(nextIndex = 0, signature = scheduleSignature)
+            } else {
+                existing
+            }
+
+            if (uniqueCandidates.isNotEmpty()) {
+                if (current.nextIndex >= uniqueCandidates.size) {
+                    current.nextIndex %= uniqueCandidates.size
+                }
+            }
+
+            val planned = mutableListOf<Int>()
+            var index = current.nextIndex
+            repeat(minOf(maxCount, uniqueCandidates.size)) {
+                if (index >= uniqueCandidates.size) {
+                    index = 0
+                }
+                planned += uniqueCandidates[index]
+                index = (index + 1) % uniqueCandidates.size
+            }
+
+            current.signature = scheduleSignature
+            current.nextIndex = if (uniqueCandidates.isEmpty()) 0 else index
+            liveLogoStateBySport[sportId] = current
+            planned
+        }
+
+        return selection
+    }
+
+    private fun List<Int>.signature(): Int {
+        var result = 1
+        for (value in this) {
+            result = 31 * result + value
+        }
+        return result
+    }
+
+    private data class LiveLogoPrefetchState(
+        var nextIndex: Int,
+        var signature: Int,
+    )
 }
