@@ -48,6 +48,41 @@ class ScheduleFragment : Fragment() {
         observeSeasons()
 
         binding.ddSeason.setPlaceholder(defaultSeasonLabel())
+        binding.ddLeague.setPlaceholder("La Liga")
+        binding.ddLeague.setData(
+            listOf(
+                LeagueItem(
+                    id = 8.toString(),
+                    name = "La Liga",
+                    iconRes = R.drawable.ic_laliga
+                ),
+                LeagueItem(
+                    id = 17.toString(),
+                    name = "Premier League",
+                    iconRes = R.drawable.ic_premier_league
+                ),
+                LeagueItem(
+                    id = 35.toString(),
+                    name = "Bundesliga",
+                    iconRes = R.drawable.ic_bundesliga
+                ),
+                LeagueItem(
+                    id = 34.toString(),
+                    name = "La Liga",
+                    iconRes = R.drawable.ic_ligue
+                ),
+                LeagueItem(
+                    id = 23.toString(),
+                    name = "Serie A",
+                    iconRes = R.drawable.ic_serie_a
+                ),
+                LeagueItem(
+                    id = 37.toString(),
+                    name = "Eredivise",
+                    iconRes = R.drawable.eredivisie
+                ),
+            )
+        )
 
         binding.btnSchedule.setOnClickListener {
             seasonsViewModel.loadSeasons(DEFAULT_UNIQUE_TOURNAMENT_ID)
@@ -91,7 +126,8 @@ class ScheduleFragment : Fragment() {
                         binding.ddSeason.setData(items)
                     }
 
-                    val errorMessage = state.errorMessage?.ifBlank { getString(R.string.season_load_error) }
+                    val errorMessage =
+                        state.errorMessage?.ifBlank { getString(R.string.season_load_error) }
                     if (errorMessage != null && errorMessage != lastErrorMessage) {
                         lastErrorMessage = errorMessage
                         Snackbar.make(binding.root, errorMessage, Snackbar.LENGTH_LONG).show()
