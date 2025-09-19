@@ -15,4 +15,7 @@ data class ScheduleUiState(
     val isMatchesLoading: Boolean = false,
     val matchesErrorMessage: String? = null,
     val futureMatches: List<MatchUiModel.Future> = emptyList(),
+    val matchesByLeagueSeason: Map<Int, Map<Int, List<MatchUiModel.Future>>> = emptyMap(),
+    val matchErrorsByLeagueSeason: Map<Int, Map<Int, String?>> = emptyMap(),
+    val isDataLoaded: Boolean = false,
 )

@@ -59,7 +59,7 @@ class ScheduleFragment : Fragment() {
         binding.ddLeague.setPlaceholder(scheduleViewModel.defaultLeagueLabel())
 
         binding.btnSchedule.setOnClickListener {
-            scheduleViewModel.refreshSelectedLeagueData()
+            scheduleViewModel.refreshSchedule()
         }
 
         if (scheduleViewModel.uiState.value.seasonsByLeague.isEmpty()) {
