@@ -91,10 +91,14 @@ class ScheduleViewModel(
      * Loads seasons for every league and progressively emits match updates as each response arrives.
      */
     fun loadAllLeagueSeasons(forceRefresh: Boolean = false) {
+        val refreshInstant = Instant.now()
         loadLiveMatches(forceRefresh)
         if (!forceRefresh && _uiState.value.isDataLoaded) {
+            _uiState.update { it.copy(lastUpdatedAt = refreshInstant) }
             return
         }
+
+        _uiState.update { it.copy(lastUpdatedAt = refreshInstant) }
 
         viewModelScope.launch {
             val previousState = _uiState.value
@@ -118,6 +122,7 @@ class ScheduleViewModel(
                     matchesByLeagueSeason = emptyMap(),
                     matchErrorsByLeagueSeason = emptyMap(),
                     isDataLoaded = false,
+                    lastUpdatedAt = refreshInstant,
                 )
             }
 

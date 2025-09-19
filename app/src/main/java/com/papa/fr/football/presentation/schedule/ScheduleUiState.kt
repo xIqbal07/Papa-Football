@@ -2,6 +2,7 @@ package com.papa.fr.football.presentation.schedule
 
 import com.papa.fr.football.domain.model.Season
 import com.papa.fr.football.presentation.schedule.matches.MatchUiModel
+import java.time.Instant
 
 /**
  * UI representation of the available leagues and seasons backing the schedule screen.
@@ -21,4 +22,5 @@ data class ScheduleUiState(
     val isLiveMatchesLoading: Boolean = false,
     val liveMatchesErrorMessage: String? = null,
     val isDataLoaded: Boolean = false,
+    val lastUpdatedAt: Instant? = null,
 )
