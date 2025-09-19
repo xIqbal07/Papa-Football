@@ -9,16 +9,13 @@ import com.papa.fr.football.data.remote.dto.TeamLogoResponseDto
 import com.papa.fr.football.domain.model.Match
 import com.papa.fr.football.domain.repository.MatchRepository
 import io.ktor.http.ContentType
-import io.ktor.http.match
-import io.ktor.http.withoutParameters
-import java.util.concurrent.ConcurrentHashMap
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
-import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.json.Json
+import java.util.concurrent.ConcurrentHashMap
 
 class MatchRepositoryImpl(
     private val seasonApiService: SeasonApiService,
@@ -27,6 +24,7 @@ class MatchRepositoryImpl(
 
     private val teamLogoCache = ConcurrentHashMap<Int, String>()
     private val logoMutex = Mutex()
+
     @Volatile
     private var nextLogoRequestAt: Long = 0L
 
@@ -137,8 +135,7 @@ class MatchRepositoryImpl(
     private fun String.isLikelyBase64(): Boolean {
         if (isBlank() || length < MIN_BASE64_LENGTH) return false
         val candidate = replace("\n", "").replace("\r", "")
-        if (candidate.any { !it.isBase64Char() }) return false
-        return true
+        return !candidate.any { !it.isBase64Char() }
     }
 
     private fun Char.isBase64Char(): Boolean {

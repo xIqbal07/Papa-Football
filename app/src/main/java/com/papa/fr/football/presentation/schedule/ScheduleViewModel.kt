@@ -8,17 +8,17 @@ import com.papa.fr.football.domain.model.Match
 import com.papa.fr.football.domain.model.Season
 import com.papa.fr.football.domain.usecase.GetSeasonsUseCase
 import com.papa.fr.football.domain.usecase.GetUpcomingMatchesUseCase
-import com.papa.fr.football.matches.MatchUiModel
-import java.time.Instant
-import java.time.LocalDate
-import java.time.ZoneId
-import java.time.format.DateTimeFormatter
-import java.util.concurrent.atomic.AtomicReference
+import com.papa.fr.football.presentation.schedule.matches.MatchUiModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import java.time.Instant
+import java.time.LocalDate
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
+import java.util.concurrent.atomic.AtomicReference
 
 /**
  * Coordinates league metadata and season loading for the schedule feature.
@@ -91,7 +91,8 @@ class ScheduleViewModel(
             var desiredSeasonId = pendingUserSeasonId.get() ?: previousState.selectedSeasonId
 
             val seasonsByLeague = mutableMapOf<Int, List<Season>>()
-            val matchesByLeagueSeason = mutableMapOf<Int, MutableMap<Int, List<MatchUiModel.Future>>>()
+            val matchesByLeagueSeason =
+                mutableMapOf<Int, MutableMap<Int, List<MatchUiModel.Future>>>()
             val matchErrorsByLeagueSeason = mutableMapOf<Int, MutableMap<Int, String?>>()
             var encounteredSeasonError: String? = null
             var processedLeagueCount = 0
@@ -135,12 +136,13 @@ class ScheduleViewModel(
                 }?.takeUnless { it.isNullOrBlank() }
 
                 val hasLoadedAllSeasons = processedLeagueCount >= _leagueItems.value.size
-                val hasLoadedSelectedMatches = if (resolvedLeagueId == null || resolvedSeasonId == null) {
-                    true
-                } else {
-                    matchesByLeagueSeason[resolvedLeagueId]
-                        ?.containsKey(resolvedSeasonId) == true
-                }
+                val hasLoadedSelectedMatches =
+                    if (resolvedLeagueId == null || resolvedSeasonId == null) {
+                        true
+                    } else {
+                        matchesByLeagueSeason[resolvedLeagueId]
+                            ?.containsKey(resolvedSeasonId) == true
+                    }
 
                 _uiState.update {
                     it.copy(
@@ -278,6 +280,7 @@ class ScheduleViewModel(
         val resolvedLeagueId = when {
             preferredLeagueId != null && availableLeagueIds.contains(preferredLeagueId) ->
                 preferredLeagueId
+
             else -> availableLeagueIds.firstOrNull { seasonsByLeague[it].orEmpty().isNotEmpty() }
         }
 
@@ -286,6 +289,7 @@ class ScheduleViewModel(
             seasons.isEmpty() -> null
             preferredSeasonId != null && seasons.any { it.id == preferredSeasonId } ->
                 preferredSeasonId
+
             else -> seasons.firstOrNull()?.id
         }
 

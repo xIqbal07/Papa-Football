@@ -1,4 +1,4 @@
-package com.papa.fr.football.matches
+package com.papa.fr.football.presentation.schedule.matches
 
 import android.os.Bundle
 import android.os.Parcelable
@@ -16,9 +16,9 @@ import com.papa.fr.football.R
 import com.papa.fr.football.databinding.FragmentMatchesListBinding
 import com.papa.fr.football.presentation.schedule.ScheduleUiState
 import com.papa.fr.football.presentation.schedule.ScheduleViewModel
-import java.util.Locale
 import kotlinx.coroutines.launch
 import org.koin.androidx.viewmodel.ext.android.sharedViewModel
+import java.util.Locale
 
 class MatchesListFragment : Fragment() {
 
@@ -73,7 +73,7 @@ class MatchesListFragment : Fragment() {
         }
 
         val shouldPreserveScroll = matchesAdapter.currentList.isNotEmpty() &&
-            matchesAdapter.currentList.map { it.id } == matches.map { it.id }
+                matchesAdapter.currentList.map { it.id } == matches.map { it.id }
 
         val savedState: Parcelable? = if (shouldPreserveScroll) {
             binding.rvMatches.layoutManager?.onSaveInstanceState()
@@ -110,7 +110,8 @@ class MatchesListFragment : Fragment() {
         binding.rvMatches.isVisible = matches.isNotEmpty()
 
         if (matchesType == MatchesTabType.FUTURE) {
-            val errorMessage = state.matchesErrorMessage?.ifBlank { getString(R.string.matches_placeholder_empty) }
+            val errorMessage =
+                state.matchesErrorMessage?.ifBlank { getString(R.string.matches_placeholder_empty) }
             if (!errorMessage.isNullOrBlank() && errorMessage != lastErrorMessage) {
                 lastErrorMessage = errorMessage
                 Snackbar.make(binding.root, errorMessage, Snackbar.LENGTH_LONG).show()

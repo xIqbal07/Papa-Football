@@ -1,4 +1,4 @@
-package com.papa.fr.football.matches
+package com.papa.fr.football.presentation.schedule.matches
 
 import android.view.LayoutInflater
 import android.view.ViewGroup
@@ -62,7 +62,6 @@ class MatchesAdapter : ListAdapter<MatchUiModel, RecyclerView.ViewHolder>(DIFF_C
             iltHome.setIndicatorActive(item.isToday)
             iltHome.setLogoBase64(item.homeLogoBase64)
             iltAway.setTitle(item.awayTeamName)
-            iltAway.setIndicatorActive(false)
             iltAway.setLogoBase64(item.awayLogoBase64)
             tvHomeStartTime.text = item.startDateLabel
             tvAwayStartTime.text = item.startTimeLabel

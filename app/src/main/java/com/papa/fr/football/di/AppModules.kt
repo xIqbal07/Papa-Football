@@ -1,16 +1,18 @@
 package com.papa.fr.football.di
 
+import com.chuckerteam.chucker.api.ChuckerCollector
+import com.chuckerteam.chucker.api.ChuckerInterceptor
 import com.papa.fr.football.data.remote.SeasonApiService
 import com.papa.fr.football.data.remote.TeamApiService
 import com.papa.fr.football.data.repository.MatchRepositoryImpl
 import com.papa.fr.football.data.repository.SeasonRepositoryImpl
 import com.papa.fr.football.domain.repository.MatchRepository
 import com.papa.fr.football.domain.repository.SeasonRepository
-import com.papa.fr.football.domain.usecase.GetUpcomingMatchesUseCase
 import com.papa.fr.football.domain.usecase.GetSeasonsUseCase
+import com.papa.fr.football.domain.usecase.GetUpcomingMatchesUseCase
 import com.papa.fr.football.presentation.schedule.ScheduleViewModel
 import io.ktor.client.HttpClient
-import io.ktor.client.engine.android.Android
+import io.ktor.client.engine.okhttp.OkHttp
 import io.ktor.client.plugins.DefaultRequest
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.client.plugins.logging.LogLevel
@@ -19,6 +21,7 @@ import io.ktor.client.request.header
 import io.ktor.http.URLProtocol
 import io.ktor.serialization.kotlinx.json.json
 import kotlinx.serialization.json.Json
+import org.koin.android.ext.koin.androidContext
 import org.koin.androidx.viewmodel.dsl.viewModel
 import org.koin.dsl.module
 
@@ -29,7 +32,16 @@ private const val API_KEY_VALUE = "633787e55amsh33c9302558d5212p1064cdjsncbcd738
 
 val networkModule = module {
     single {
-        HttpClient(Android) {
+        HttpClient(OkHttp) {
+            engine {
+                addInterceptor(
+                    ChuckerInterceptor.Builder(androidContext())
+                        .collector(ChuckerCollector(androidContext()))
+                        .maxContentLength(250_000L)
+                        .alwaysReadResponseBody(true)
+                        .build()
+                )
+            }
             install(DefaultRequest) {
                 url {
                     protocol = URLProtocol.HTTPS

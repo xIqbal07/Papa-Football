@@ -13,8 +13,8 @@ import com.papa.fr.football.R
 import com.papa.fr.football.common.dropdown.LeagueItem
 import com.papa.fr.football.common.matches.MatchesTabLayoutView
 import com.papa.fr.football.databinding.FragmentScheduleBinding
-import com.papa.fr.football.matches.MatchesListFragment
-import com.papa.fr.football.matches.MatchesTabType
+import com.papa.fr.football.presentation.schedule.matches.MatchesListFragment
+import com.papa.fr.football.presentation.schedule.matches.MatchesTabType
 import kotlinx.coroutines.launch
 import org.koin.androidx.viewmodel.ext.android.sharedViewModel
 import java.util.Calendar

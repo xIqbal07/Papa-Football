@@ -60,6 +60,8 @@ dependencies {
     implementation(libs.ktor.serialization.kotlinx.json)
     implementation(libs.ktor.client.logging)
     implementation(libs.koin.android)
+    implementation(libs.ktor.ktor.client.okhttp)
+    debugImplementation(libs.chucker)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)

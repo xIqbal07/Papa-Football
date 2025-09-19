@@ -1,4 +1,4 @@
-package com.papa.fr.football
+package com.papa.fr.football.presentation
 
 import android.os.Bundle
 import androidx.activity.enableEdgeToEdge
@@ -8,6 +8,7 @@ import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.fragment.app.commit
 import com.google.android.material.bottomnavigation.BottomNavigationView
+import com.papa.fr.football.R
 import com.papa.fr.football.databinding.ActivityMainBinding
 import com.papa.fr.football.presentation.navigation.PlaceholderFragment
 import com.papa.fr.football.presentation.schedule.ScheduleFragment
@@ -56,9 +57,9 @@ class MainActivity : AppCompatActivity() {
 
     private fun navigateTo(@IdRes itemId: Int): Boolean {
         val (tag, fragmentProvider) = when (itemId) {
-            R.id.menu_schedule -> ScheduleFragment.TAG to { ScheduleFragment() }
-            R.id.menu_highlights -> PlaceholderFragment.tagFor(itemId) to {
-                PlaceholderFragment.newInstance(
+            R.id.menu_schedule -> ScheduleFragment.Companion.TAG to { ScheduleFragment() }
+            R.id.menu_highlights -> PlaceholderFragment.Companion.tagFor(itemId) to {
+                PlaceholderFragment.Companion.newInstance(
                     getString(
                         R.string.placeholder_coming_soon,
                         getString(R.string.bottom_nav_highlights)
@@ -66,8 +67,8 @@ class MainActivity : AppCompatActivity() {
                 )
             }
 
-            R.id.menu_teams -> PlaceholderFragment.tagFor(itemId) to {
-                PlaceholderFragment.newInstance(
+            R.id.menu_teams -> PlaceholderFragment.Companion.tagFor(itemId) to {
+                PlaceholderFragment.Companion.newInstance(
                     getString(
                         R.string.placeholder_coming_soon,
                         getString(R.string.bottom_nav_teams)
@@ -75,8 +76,8 @@ class MainActivity : AppCompatActivity() {
                 )
             }
 
-            R.id.menu_standings -> PlaceholderFragment.tagFor(itemId) to {
-                PlaceholderFragment.newInstance(
+            R.id.menu_standings -> PlaceholderFragment.Companion.tagFor(itemId) to {
+                PlaceholderFragment.Companion.newInstance(
                     getString(
                         R.string.placeholder_coming_soon,
                         getString(R.string.bottom_nav_standings)
@@ -84,8 +85,8 @@ class MainActivity : AppCompatActivity() {
                 )
             }
 
-            R.id.menu_settings -> PlaceholderFragment.tagFor(itemId) to {
-                PlaceholderFragment.newInstance(
+            R.id.menu_settings -> PlaceholderFragment.Companion.tagFor(itemId) to {
+                PlaceholderFragment.Companion.newInstance(
                     getString(
                         R.string.placeholder_coming_soon,
                         getString(R.string.bottom_nav_settings)

@@ -1,7 +1,7 @@
 package com.papa.fr.football.presentation.schedule
 
 import com.papa.fr.football.domain.model.Season
-import com.papa.fr.football.matches.MatchUiModel
+import com.papa.fr.football.presentation.schedule.matches.MatchUiModel
 
 /**
  * UI representation of the available leagues and seasons backing the schedule screen.
