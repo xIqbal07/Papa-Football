@@ -83,7 +83,12 @@ class MatchRepositoryImpl(
 
         emissionMutex.withLock { emitSnapshot() }
 
-        val pendingTeamIds = teamIds.filterNot { logos.containsKey(it) }
+        val prioritizedTeamIds = events
+            .take(MAX_EVENTS_FOR_LOGOS)
+            .flatMap { event -> listOfNotNull(event.homeTeam?.id, event.awayTeam?.id) }
+            .distinct()
+
+        val pendingTeamIds = prioritizedTeamIds.filterNot { logos.containsKey(it) }
         val jobs = pendingTeamIds.map { teamId ->
             launch {
                 val logo = runCatching { teamLogoProvider.getTeamLogo(teamId) }.getOrElse { "" }
@@ -100,5 +105,9 @@ class MatchRepositoryImpl(
         }
 
         jobs.joinAll()
+    }
+
+    private companion object {
+        const val MAX_EVENTS_FOR_LOGOS = 50
     }
 }
