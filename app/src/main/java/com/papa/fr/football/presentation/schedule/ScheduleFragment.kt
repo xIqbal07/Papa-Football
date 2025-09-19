@@ -21,8 +21,6 @@ import org.koin.androidx.viewmodel.ext.android.viewModel
 import java.util.Calendar
 import java.util.Locale
 
-private const val DEFAULT_UNIQUE_TOURNAMENT_ID = 8
-
 class ScheduleFragment : Fragment() {
 
     private var _binding: FragmentScheduleBinding? = null
@@ -30,7 +28,7 @@ class ScheduleFragment : Fragment() {
 
     private val seasonsViewModel: SeasonsViewModel by viewModel()
 
-    private var lastSeasonIds: List<Int> = emptyList()
+    private var lastSeasonIdsByLeague: Map<Int, List<Int>> = emptyMap()
     private var lastErrorMessage: String? = null
 
     override fun onCreateView(
@@ -48,15 +46,24 @@ class ScheduleFragment : Fragment() {
         observeSeasons()
         observeLeagues()
 
+        binding.ddLeague.setOnChangedListener { league ->
+            updateSeasonDropdown(league.id)
+        }
+
         binding.ddSeason.setPlaceholder(defaultSeasonLabel())
         binding.ddLeague.setPlaceholder(seasonsViewModel.defaultLeagueLabel())
 
         binding.btnSchedule.setOnClickListener {
-            seasonsViewModel.loadSeasons(DEFAULT_UNIQUE_TOURNAMENT_ID)
+            val selectedLeagueId = binding.ddLeague.getSelected()?.id
+            if (selectedLeagueId != null) {
+                seasonsViewModel.loadSeasonsForLeague(selectedLeagueId)
+            } else {
+                seasonsViewModel.loadAllLeagueSeasons()
+            }
         }
 
-        if (seasonsViewModel.uiState.value.seasons.isEmpty()) {
-            seasonsViewModel.loadSeasons(DEFAULT_UNIQUE_TOURNAMENT_ID)
+        if (seasonsViewModel.uiState.value.seasonsByLeague.isEmpty()) {
+            seasonsViewModel.loadAllLeagueSeasons()
         }
     }
 
@@ -81,16 +88,12 @@ class ScheduleFragment : Fragment() {
         viewLifecycleOwner.lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
                 seasonsViewModel.uiState.collect { state ->
-                    val seasonIds = state.seasons.map { it.id }
-                    if (seasonIds != lastSeasonIds && state.seasons.isNotEmpty()) {
-                        lastSeasonIds = seasonIds
-                        val items = state.seasons.map { season ->
-                            LeagueItem(
-                                id = season.id.toString(),
-                                name = season.year.orEmpty()
-                            )
-                        }
-                        binding.ddSeason.setData(items)
+                    val seasonIdsByLeague = state.seasonsByLeague.mapValues { entry ->
+                        entry.value.map { it.id }
+                    }
+                    if (seasonIdsByLeague != lastSeasonIdsByLeague) {
+                        lastSeasonIdsByLeague = seasonIdsByLeague
+                        updateSeasonDropdown(binding.ddLeague.getSelected()?.id)
                     }
 
                     val errorMessage =
@@ -112,10 +115,31 @@ class ScheduleFragment : Fragment() {
                 seasonsViewModel.leagueItems.collect { leagues ->
                     if (leagues.isNotEmpty()) {
                         binding.ddLeague.setData(leagues)
+                        if (binding.ddLeague.getSelected() == null) {
+                            binding.ddLeague.setSelected(leagues.first())
+                            updateSeasonDropdown(leagues.first().id)
+                        }
                     }
                 }
             }
         }
+    }
+
+    private fun updateSeasonDropdown(leagueId: Int?) {
+        val seasons = leagueId?.let { seasonsViewModel.seasonsForLeague(it) }.orEmpty()
+        if (seasons.isEmpty()) {
+            binding.ddSeason.setData(emptyList())
+            binding.ddSeason.setPlaceholder(defaultSeasonLabel())
+            return
+        }
+
+        val seasonItems = seasons.map { season ->
+            LeagueItem(
+                id = season.id,
+                name = season.year.orEmpty()
+            )
+        }
+        binding.ddSeason.setData(seasonItems)
     }
 
     private fun defaultSeasonLabel(): String {

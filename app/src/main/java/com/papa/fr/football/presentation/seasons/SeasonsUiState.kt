@@ -4,6 +4,6 @@ import com.papa.fr.football.domain.model.Season
 
 data class SeasonsUiState(
     val isLoading: Boolean = false,
-    val seasons: List<Season> = emptyList(),
+    val seasonsByLeague: Map<Int, List<Season>> = emptyMap(),
     val errorMessage: String? = null
 )
