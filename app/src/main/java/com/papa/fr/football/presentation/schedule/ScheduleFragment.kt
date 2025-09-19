@@ -15,7 +15,7 @@ import com.papa.fr.football.common.matches.MatchesTabLayoutView
 import com.papa.fr.football.databinding.FragmentScheduleBinding
 import com.papa.fr.football.matches.MatchesListFragment
 import com.papa.fr.football.matches.MatchesTabType
-import com.papa.fr.football.presentation.seasons.SeasonsViewModel
+import com.papa.fr.football.presentation.schedule.season.SeasonsViewModel
 import kotlinx.coroutines.launch
 import org.koin.androidx.viewmodel.ext.android.viewModel
 import java.util.Calendar

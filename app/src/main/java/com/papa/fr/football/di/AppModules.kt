@@ -4,7 +4,7 @@ import com.papa.fr.football.data.remote.SeasonApiService
 import com.papa.fr.football.data.repository.SeasonRepositoryImpl
 import com.papa.fr.football.domain.repository.SeasonRepository
 import com.papa.fr.football.domain.usecase.GetSeasonsUseCase
-import com.papa.fr.football.presentation.seasons.SeasonsViewModel
+import com.papa.fr.football.presentation.schedule.season.SeasonsViewModel
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.android.Android
 import io.ktor.client.plugins.DefaultRequest
