@@ -3,7 +3,9 @@ package com.papa.fr.football.common.itemteam
 import android.content.Context
 import android.util.AttributeSet
 import android.view.LayoutInflater
+import androidx.annotation.DrawableRes
 import androidx.constraintlayout.widget.ConstraintLayout
+import androidx.core.content.ContextCompat
 import androidx.core.content.withStyledAttributes
 import androidx.core.view.isVisible
 import com.papa.fr.football.R
@@ -27,5 +29,17 @@ class ItemListTeam @JvmOverloads constructor(
                     getBoolean(R.styleable.ItemListTeam_active, false)
             }
         }
+    }
+
+    fun setTitle(title: String) {
+        binding.tvTeamName.text = title
+    }
+
+    fun setLogo(@DrawableRes logo: Int) {
+        binding.ivLogo.setImageDrawable(ContextCompat.getDrawable(context, logo))
+    }
+
+    fun setIndicatorActive(isActive: Boolean) {
+        binding.ivIndicatorActive.isVisible = isActive
     }
 }

@@ -56,18 +56,20 @@ class MatchesListFragment : Fragment() {
             id = "future-1",
             homeTeam = "Royal Vallecano",
             awayTeam = "Real Betis",
-            date = "Today 20:00",
-            kickoffTime = "20:00",
-            odds = MatchUiModel.Odds("2.6", "2.9", "2.7")
+            homeStartTime = "Today 10:00",
+            homeLogoBase64 = "",
+            awayLogoBase64 = "",
+            odds = MatchUiModel.Odds("2.2", "3.1", "2.9"),
         ),
         MatchUiModel.Future(
             id = "future-2",
             homeTeam = "Villarreal",
             awayTeam = "Barcelona",
-            date = "02.07.2025 21:00",
-            kickoffTime = "21:00",
-            odds = MatchUiModel.Odds("2.2", "3.1", "2.9")
-        )
+            homeStartTime = "Tommorow 10:00",
+            homeLogoBase64 = "",
+            awayLogoBase64 = "",
+            odds = MatchUiModel.Odds("2.2", "3.1", "2.9"),
+        ),
     )
 
     private fun demoLiveMatches(): List<MatchUiModel> = listOf(

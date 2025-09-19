@@ -5,6 +5,7 @@ import android.util.AttributeSet
 import android.view.LayoutInflater
 import android.widget.FrameLayout
 import androidx.core.content.ContextCompat
+import androidx.core.content.withStyledAttributes
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.FragmentActivity
 import androidx.viewpager2.adapter.FragmentStateAdapter
@@ -14,7 +15,6 @@ import com.google.android.material.tabs.TabLayoutMediator
 import com.papa.fr.football.R
 import com.papa.fr.football.databinding.ItemMatchesTabBinding
 import com.papa.fr.football.databinding.ViewMatchesTabLayoutBinding
-import androidx.core.content.withStyledAttributes
 
 class MatchesTabLayoutView @JvmOverloads constructor(
     context: Context,
@@ -22,7 +22,8 @@ class MatchesTabLayoutView @JvmOverloads constructor(
     defStyleAttr: Int = 0
 ) : FrameLayout(context, attrs, defStyleAttr) {
 
-    private val binding = ViewMatchesTabLayoutBinding.inflate(LayoutInflater.from(context), this, true)
+    private val binding =
+        ViewMatchesTabLayoutBinding.inflate(LayoutInflater.from(context), this, true)
     private var mediator: TabLayoutMediator? = null
     private var pageChangeCallback: ViewPager2.OnPageChangeCallback? = null
 
@@ -75,9 +76,10 @@ class MatchesTabLayoutView @JvmOverloads constructor(
     }
 
     private fun createTabView(title: String) =
-        ItemMatchesTabBinding.inflate(LayoutInflater.from(context), binding.tabLayout, false).apply {
-            tvTabTitle.text = title
-        }.root
+        ItemMatchesTabBinding.inflate(LayoutInflater.from(context), binding.tabLayout, false)
+            .apply {
+                tvTabTitle.text = title
+            }.root
 
     private fun updateTabSelection(selectedPosition: Int) {
         for (index in 0 until binding.tabLayout.tabCount) {

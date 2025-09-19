@@ -16,7 +16,6 @@ import com.papa.fr.football.common.matches.MatchesTabLayoutView
 import com.papa.fr.football.databinding.FragmentScheduleBinding
 import com.papa.fr.football.matches.MatchesListFragment
 import com.papa.fr.football.matches.MatchesTabType
-import com.papa.fr.football.presentation.schedule.ScheduleViewModel
 import kotlinx.coroutines.launch
 import org.koin.androidx.viewmodel.ext.android.viewModel
 import java.util.Calendar
@@ -48,7 +47,6 @@ class ScheduleFragment : Fragment() {
         observeLeagues()
 
         binding.ddLeague.setOnChangedListener { league ->
-            Log.d("IQBAL-TEST", "onViewCreated: $league")
             updateSeasonDropdown(league.id)
         }
 
@@ -136,7 +134,6 @@ class ScheduleFragment : Fragment() {
         }
 
         val seasonItems = seasons.map { season ->
-            Log.d("IQBAL-TEST", "updateSeasonDropdown: $seasons")
             LeagueItem(
                 id = season.id,
                 name = season.year.orEmpty()

@@ -2,7 +2,6 @@ package com.papa.fr.football.matches
 
 import android.view.LayoutInflater
 import android.view.ViewGroup
-import androidx.core.view.isVisible
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
@@ -55,18 +54,11 @@ class MatchesAdapter : ListAdapter<MatchUiModel, RecyclerView.ViewHolder>(DIFF_C
     ) : RecyclerView.ViewHolder(binding.root) {
 
         fun bind(item: MatchUiModel.Future) = with(binding) {
-//            tvAwayStartTime.text = item.date
-//            tvFutureHome.text = item.homeTeam
-//            tvFutureAway.text = item.awayTeam
-//            tvFutureTime.text = item.kickoffTime
-//
-//            val odds = item.odds
-//            groupFutureOdds.isVisible = odds != null
-//            odds?.let {
-//                tvFutureOddsHome.text = it.home
-//                tvFutureOddsDraw.text = it.draw
-//                tvFutureOddsAway.text = it.away
-//            }
+            iltHome.setTitle(item.homeTeam)
+            iltHome.setIndicatorActive(item.homeStartTime.contains("Today"))
+            iltAway.setTitle(item.awayTeam)
+            tvHomeStartTime.text = item.homeStartTime
+            tvAwayStartTime.text = item.awayStartTime
         }
     }
 
@@ -116,8 +108,10 @@ sealed class MatchUiModel(open val id: String) {
         override val id: String,
         val homeTeam: String,
         val awayTeam: String,
-        val date: String,
-        val kickoffTime: String,
+        val homeStartTime: String,
+        val awayStartTime: String = "--",
+        val homeLogoBase64: String,
+        val awayLogoBase64: String,
         val odds: Odds? = null,
     ) : MatchUiModel(id)
 

@@ -7,10 +7,10 @@ import android.util.AttributeSet
 import android.view.LayoutInflater
 import android.widget.FrameLayout
 import androidx.core.content.ContextCompat
-import com.papa.fr.football.R
-import com.papa.fr.football.databinding.ItemLeagueDropdownBinding
 import androidx.core.content.withStyledAttributes
 import androidx.core.graphics.drawable.toDrawable
+import com.papa.fr.football.R
+import com.papa.fr.football.databinding.ItemLeagueDropdownBinding
 
 class LeagueDropdownView @JvmOverloads constructor(
     context: Context,
@@ -94,7 +94,8 @@ class LeagueDropdownView @JvmOverloads constructor(
             // setText(CharSequence, boolean) avoids filtering
             binding.actv.setText(leagues[index].name, false)
         }
-        binding.til.startIconDrawable = target.iconRes?.let { ContextCompat.getDrawable(context, it) }
+        binding.til.startIconDrawable =
+            target.iconRes?.let { ContextCompat.getDrawable(context, it) }
     }
 
     fun setPlaceholder(text: CharSequence?) {
