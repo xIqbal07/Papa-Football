@@ -68,19 +68,14 @@ class ScheduleFragment : Fragment() {
     }
 
     private fun setupMatchesTabs() {
+        val tabItems = MatchesTabType.entries.map { tabType ->
+            MatchesTabLayoutView.TabItem(getString(tabType.titleRes)) {
+                MatchesListFragment.newInstance(tabType)
+            }
+        }
         binding.matchesTabs.setupWith(
             fragmentActivity = requireActivity(),
-            tabs = listOf(
-                MatchesTabLayoutView.TabItem(getString(R.string.matches_tab_future)) {
-                    MatchesListFragment.newInstance(MatchesTabType.FUTURE)
-                },
-                MatchesTabLayoutView.TabItem(getString(R.string.matches_tab_live)) {
-                    MatchesListFragment.newInstance(MatchesTabType.LIVE)
-                },
-                MatchesTabLayoutView.TabItem(getString(R.string.matches_tab_past)) {
-                    MatchesListFragment.newInstance(MatchesTabType.PAST)
-                }
-            )
+            tabs = tabItems
         )
     }
 

@@ -5,6 +5,7 @@ import android.os.Parcelable
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import androidx.annotation.StringRes
 import androidx.core.os.bundleOf
 import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
@@ -67,10 +68,7 @@ class MatchesListFragment : Fragment() {
     }
 
     private fun updateMatches(state: ScheduleUiState) {
-        val matches = when (matchesType) {
-            MatchesTabType.FUTURE -> state.futureMatches
-            MatchesTabType.LIVE, MatchesTabType.PAST -> emptyList()
-        }
+        val matches = matchesFor(state)
 
         val shouldPreserveScroll = matchesAdapter.currentList.isNotEmpty() &&
                 matchesAdapter.currentList.map { it.id } == matches.map { it.id }
@@ -87,20 +85,7 @@ class MatchesListFragment : Fragment() {
             }
         }
 
-        val placeholderText = when {
-            matchesType == MatchesTabType.FUTURE && state.isMatchesLoading ->
-                getString(R.string.matches_placeholder_loading)
-
-            matchesType == MatchesTabType.FUTURE && !state.matchesErrorMessage.isNullOrBlank() ->
-                state.matchesErrorMessage
-
-            matchesType == MatchesTabType.FUTURE -> getString(R.string.matches_placeholder_empty)
-
-            else -> getString(
-                R.string.matches_placeholder_format,
-                matchesType.name.lowercase(Locale.getDefault())
-            )
-        }
+        val placeholderText = placeholderTextFor(state)
 
         val showPlaceholder = matches.isEmpty()
         binding.tvPlaceholder.isVisible = showPlaceholder
@@ -109,15 +94,12 @@ class MatchesListFragment : Fragment() {
         }
         binding.rvMatches.isVisible = matches.isNotEmpty()
 
-        if (matchesType == MatchesTabType.FUTURE) {
-            val errorMessage =
-                state.matchesErrorMessage?.ifBlank { getString(R.string.matches_placeholder_empty) }
-            if (!errorMessage.isNullOrBlank() && errorMessage != lastErrorMessage) {
-                lastErrorMessage = errorMessage
-                Snackbar.make(binding.root, errorMessage, Snackbar.LENGTH_LONG).show()
-            } else if (errorMessage.isNullOrBlank()) {
-                lastErrorMessage = null
-            }
+        val futureErrorMessage = resolveFutureError(state)
+        if (futureErrorMessage != null && futureErrorMessage != lastErrorMessage) {
+            lastErrorMessage = futureErrorMessage
+            Snackbar.make(binding.root, futureErrorMessage, Snackbar.LENGTH_LONG).show()
+        } else if (futureErrorMessage == null) {
+            lastErrorMessage = null
         }
     }
 
@@ -132,8 +114,35 @@ class MatchesListFragment : Fragment() {
     }
 }
 
-enum class MatchesTabType {
-    FUTURE,
-    LIVE,
-    PAST
+enum class MatchesTabType(@StringRes val titleRes: Int) {
+    FUTURE(R.string.matches_tab_future),
+    LIVE(R.string.matches_tab_live),
+    PAST(R.string.matches_tab_past)
+}
+
+private fun MatchesListFragment.matchesFor(state: ScheduleUiState): List<MatchUiModel> = when (matchesType) {
+    MatchesTabType.FUTURE -> state.futureMatches
+    MatchesTabType.LIVE, MatchesTabType.PAST -> emptyList()
+}
+
+private fun MatchesListFragment.placeholderTextFor(state: ScheduleUiState): String = when (matchesType) {
+    MatchesTabType.FUTURE -> when {
+        state.isMatchesLoading -> getString(R.string.matches_placeholder_loading)
+        !state.matchesErrorMessage.isNullOrBlank() -> state.matchesErrorMessage
+        else -> getString(R.string.matches_placeholder_empty)
+    }
+
+    MatchesTabType.LIVE, MatchesTabType.PAST -> getString(
+        R.string.matches_placeholder_format,
+        matchesType.name.lowercase(Locale.getDefault())
+    )
+}
+
+private fun MatchesListFragment.resolveFutureError(state: ScheduleUiState): String? {
+    if (matchesType != MatchesTabType.FUTURE) {
+        return null
+    }
+    return state.matchesErrorMessage
+        ?.ifBlank { getString(R.string.matches_placeholder_empty) }
+        ?.takeIf { it.isNotBlank() }
 }

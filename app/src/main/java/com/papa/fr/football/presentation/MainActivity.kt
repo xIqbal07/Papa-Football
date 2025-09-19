@@ -3,9 +3,11 @@ package com.papa.fr.football.presentation
 import android.os.Bundle
 import androidx.activity.enableEdgeToEdge
 import androidx.annotation.IdRes
+import androidx.annotation.StringRes
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
+import androidx.fragment.app.Fragment
 import androidx.fragment.app.commit
 import com.google.android.material.bottomnavigation.BottomNavigationView
 import com.papa.fr.football.R
@@ -16,6 +18,31 @@ import com.papa.fr.football.presentation.schedule.ScheduleFragment
 class MainActivity : AppCompatActivity() {
     private lateinit var binding: ActivityMainBinding
     private var selectedItemId: Int = R.id.menu_schedule
+    private val navigationDestinations by lazy {
+        listOf(
+            NavigationDestination(
+                id = R.id.menu_schedule,
+                tag = ScheduleFragment.TAG,
+                fragmentProvider = { ScheduleFragment() },
+            ),
+            placeholderDestination(
+                itemId = R.id.menu_highlights,
+                titleRes = R.string.bottom_nav_highlights,
+            ),
+            placeholderDestination(
+                itemId = R.id.menu_teams,
+                titleRes = R.string.bottom_nav_teams,
+            ),
+            placeholderDestination(
+                itemId = R.id.menu_standings,
+                titleRes = R.string.bottom_nav_standings,
+            ),
+            placeholderDestination(
+                itemId = R.id.menu_settings,
+                titleRes = R.string.bottom_nav_settings,
+            )
+        ).associateBy { it.id }
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -56,51 +83,12 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun navigateTo(@IdRes itemId: Int): Boolean {
-        val (tag, fragmentProvider) = when (itemId) {
-            R.id.menu_schedule -> ScheduleFragment.Companion.TAG to { ScheduleFragment() }
-            R.id.menu_highlights -> PlaceholderFragment.Companion.tagFor(itemId) to {
-                PlaceholderFragment.Companion.newInstance(
-                    getString(
-                        R.string.placeholder_coming_soon,
-                        getString(R.string.bottom_nav_highlights)
-                    )
-                )
-            }
-
-            R.id.menu_teams -> PlaceholderFragment.Companion.tagFor(itemId) to {
-                PlaceholderFragment.Companion.newInstance(
-                    getString(
-                        R.string.placeholder_coming_soon,
-                        getString(R.string.bottom_nav_teams)
-                    )
-                )
-            }
-
-            R.id.menu_standings -> PlaceholderFragment.Companion.tagFor(itemId) to {
-                PlaceholderFragment.Companion.newInstance(
-                    getString(
-                        R.string.placeholder_coming_soon,
-                        getString(R.string.bottom_nav_standings)
-                    )
-                )
-            }
-
-            R.id.menu_settings -> PlaceholderFragment.Companion.tagFor(itemId) to {
-                PlaceholderFragment.Companion.newInstance(
-                    getString(
-                        R.string.placeholder_coming_soon,
-                        getString(R.string.bottom_nav_settings)
-                    )
-                )
-            }
-
-            else -> return false
-        }
-
-        val fragment = supportFragmentManager.findFragmentByTag(tag) ?: fragmentProvider()
+        val destination = navigationDestinations[itemId] ?: return false
+        val fragment = supportFragmentManager.findFragmentByTag(destination.tag)
+            ?: destination.fragmentProvider()
         supportFragmentManager.commit {
             setReorderingAllowed(true)
-            replace(R.id.fragment_container, fragment, tag)
+            replace(R.id.fragment_container, fragment, destination.tag)
         }
         return true
     }
@@ -113,4 +101,26 @@ class MainActivity : AppCompatActivity() {
     companion object {
         private const val KEY_SELECTED_ITEM = "key_selected_item"
     }
+
+    private fun placeholderDestination(
+        @IdRes itemId: Int,
+        @StringRes titleRes: Int,
+    ): NavigationDestination {
+        return NavigationDestination(
+            id = itemId,
+            tag = PlaceholderFragment.tagFor(itemId),
+            fragmentProvider = {
+                val sectionName = getString(titleRes)
+                PlaceholderFragment.newInstance(
+                    getString(R.string.placeholder_coming_soon, sectionName)
+                )
+            }
+        )
+    }
+
+    private data class NavigationDestination(
+        @IdRes val id: Int,
+        val tag: String,
+        val fragmentProvider: () -> Fragment,
+    )
 }
