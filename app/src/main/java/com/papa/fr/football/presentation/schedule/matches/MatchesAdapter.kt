@@ -92,8 +92,8 @@ class MatchesAdapter : ListAdapter<MatchUiModel, RecyclerView.ViewHolder>(DIFF_C
             iltHome.setLogoBase64(item.homeLogoBase64)
             iltAway.setTitle(item.awayTeamName)
             iltAway.setLogoBase64(item.awayLogoBase64)
-            tvHomeStartTime.text = item.startDateLabel
-            tvAwayStartTime.text = item.startTimeLabel
+            tvStartTime.text = item.startDateLabel
+            tvScore.text = item.scoreLabel
         }
     }
 
@@ -141,7 +141,7 @@ sealed class MatchUiModel(open val id: String) {
         val homeTeamName: String,
         val awayTeamName: String,
         val startDateLabel: String,
-        val startTimeLabel: String,
+        val scoreLabel: String,
         val homeLogoBase64: String,
         val awayLogoBase64: String,
     ) : MatchUiModel(id)

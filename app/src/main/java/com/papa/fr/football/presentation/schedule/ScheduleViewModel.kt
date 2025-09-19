@@ -526,18 +526,29 @@ class ScheduleViewModel(
     private fun Match.toPastUiModel(): MatchUiModel.Past {
         val instant = toInstant(startTimestamp)
         val zonedDateTime = instant.atZone(ZoneId.systemDefault())
-        val dateLabel = zonedDateTime.format(DATE_FORMATTER)
-        val timeLabel = zonedDateTime.format(TIME_FORMATTER)
+        val dateLabel = zonedDateTime.format(PAST_DATE_FORMATTER)
+        val scoreLabel = formatScore(homeScore, awayScore)
 
         return MatchUiModel.Past(
             id = id,
             homeTeamName = homeTeam.name,
             awayTeamName = awayTeam.name,
             startDateLabel = dateLabel,
-            startTimeLabel = timeLabel,
+            scoreLabel = scoreLabel,
             homeLogoBase64 = homeTeam.logoBase64,
             awayLogoBase64 = awayTeam.logoBase64,
         )
+    }
+
+    private fun formatScore(homeScore: Int?, awayScore: Int?): String {
+        if (homeScore == null || awayScore == null) {
+            return SCORE_PLACEHOLDER
+        }
+        return buildString {
+            append(homeScore)
+            append(':')
+            append(awayScore)
+        }
     }
 
     private fun toInstant(timestamp: Long): Instant {
@@ -551,6 +562,8 @@ class ScheduleViewModel(
     companion object {
         private val DATE_FORMATTER: DateTimeFormatter = DateTimeFormatter.ofPattern("MMM dd")
         private val TIME_FORMATTER: DateTimeFormatter = DateTimeFormatter.ofPattern("HH:mm")
+        private val PAST_DATE_FORMATTER: DateTimeFormatter = DateTimeFormatter.ofPattern("dd.MM.yyyy")
+        private const val SCORE_PLACEHOLDER = "-"
         private const val DEFAULT_SEASONS_ERROR_MESSAGE = "Unable to load seasons"
         private const val DEFAULT_MATCHES_ERROR_MESSAGE = "Unable to load matches"
     }

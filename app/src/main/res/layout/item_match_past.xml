@@ -44,11 +44,11 @@
             android:layout_marginEnd="80dp"
             android:background="#2D4A63"
             app:layout_constraintBottom_toBottomOf="@id/ilt_away"
-            app:layout_constraintEnd_toStartOf="@id/tv_home_start_time"
+            app:layout_constraintEnd_toStartOf="@id/tv_start_time"
             app:layout_constraintTop_toTopOf="@id/ilt_home" />
 
         <TextView
-            android:id="@+id/tv_home_start_time"
+            android:id="@+id/tv_start_time"
             style="@style/AfacadBold.12sp.cyan"
             android:textColor="@color/white"
             app:layout_constraintBottom_toBottomOf="@id/ilt_home"
@@ -57,7 +57,7 @@
             tools:text="01.09.2025" />
 
         <TextView
-            android:id="@+id/tv_away_start_time"
+            android:id="@+id/tv_score"
             style="@style/AfacadBold.12sp.cyan"
             android:textColor="@color/white"
             app:layout_constraintBottom_toBottomOf="@id/ilt_away"
