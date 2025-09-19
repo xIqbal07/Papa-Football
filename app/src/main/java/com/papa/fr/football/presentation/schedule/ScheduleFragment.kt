@@ -5,7 +5,6 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import androidx.fragment.app.Fragment
-import androidx.fragment.app.defaultViewModelCreationExtras
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
@@ -82,7 +81,7 @@ class ScheduleFragment : Fragment() {
         )
     }
 
-    private fun observeSeasons() {
+        private fun observeSeasons() {
         viewLifecycleOwner.lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
                 scheduleViewModel.uiState.collect(::handleSeasonState)

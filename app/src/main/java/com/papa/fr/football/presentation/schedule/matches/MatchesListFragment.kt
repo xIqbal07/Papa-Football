@@ -9,7 +9,6 @@ import androidx.annotation.StringRes
 import androidx.core.os.bundleOf
 import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
-import androidx.fragment.app.defaultViewModelCreationExtras
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
@@ -33,7 +32,7 @@ class MatchesListFragment : Fragment() {
     )
     private val matchesAdapter = MatchesAdapter()
     private var lastErrorMessage: String? = null
-    private lateinit var matchesType: MatchesTabType
+    lateinit var matchesType: MatchesTabType
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
