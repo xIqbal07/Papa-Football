@@ -25,6 +25,10 @@ data class EventDto(
     val awayTeam: EventTeamDto? = null,
     @SerialName("startTimestamp")
     val startTimestamp: Long? = null,
+    @SerialName("homeScore")
+    val homeScore: EventScoreDto? = null,
+    @SerialName("awayScore")
+    val awayScore: EventScoreDto? = null,
 )
 
 @Serializable
@@ -33,4 +37,10 @@ data class EventTeamDto(
     val id: Int? = null,
     @SerialName("name")
     val name: String? = null,
+)
+
+@Serializable
+data class EventScoreDto(
+    @SerialName("current")
+    val current: Int? = null,
 )

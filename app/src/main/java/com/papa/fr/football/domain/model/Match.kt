@@ -8,6 +8,8 @@ data class Match(
     val startTimestamp: Long,
     val homeTeam: MatchTeam,
     val awayTeam: MatchTeam,
+    val homeScore: Int? = null,
+    val awayScore: Int? = null,
 )
 
 /**

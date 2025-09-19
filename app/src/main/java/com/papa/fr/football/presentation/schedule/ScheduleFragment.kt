@@ -81,11 +81,16 @@ class ScheduleFragment : Fragment() {
         }
         binding.matchesTabs.setupWith(
             fragmentActivity = requireActivity(),
-            tabs = tabItems
+            tabs = tabItems,
+            onTabSelected = { index ->
+                val tabType = MatchesTabType.all.getOrNull(index) ?: MatchesTabType.Future
+                scheduleViewModel.onMatchesTabSelected(tabType)
+                updateSeasonDropdown(scheduleViewModel.uiState.value.selectedLeagueId)
+            }
         )
     }
 
-        private fun observeSeasons() {
+    private fun observeSeasons() {
         viewLifecycleOwner.lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
                 scheduleViewModel.uiState.collect(::handleSeasonState)

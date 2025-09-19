@@ -21,6 +21,8 @@ fun EventDto.toDomain(homeLogoBase64: String?, awayLogoBase64: String?): Match {
             name = awayTeam?.name.orEmpty(),
             logoBase64 = awayLogoBase64.orEmpty(),
         ),
+        homeScore = homeScore?.current,
+        awayScore = awayScore?.current,
     )
 }
 

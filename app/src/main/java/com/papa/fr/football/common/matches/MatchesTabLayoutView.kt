@@ -52,7 +52,8 @@ class MatchesTabLayoutView @JvmOverloads constructor(
     fun setupWith(
         fragmentActivity: FragmentActivity,
         tabs: List<TabItem>,
-        defaultTabIndex: Int = 0
+        defaultTabIndex: Int = 0,
+        onTabSelected: ((Int) -> Unit)? = null,
     ) {
         require(tabs.isNotEmpty()) { "Tabs list cannot be empty." }
 
@@ -67,12 +68,16 @@ class MatchesTabLayoutView @JvmOverloads constructor(
         pageChangeCallback = object : ViewPager2.OnPageChangeCallback() {
             override fun onPageSelected(position: Int) {
                 updateTabSelection(position)
+                onTabSelected?.invoke(position)
             }
         }.also { binding.viewPager.registerOnPageChangeCallback(it) }
 
         val startIndex = defaultTabIndex.coerceIn(0, tabs.lastIndex)
         binding.viewPager.setCurrentItem(startIndex, false)
-        binding.tabLayout.post { updateTabSelection(startIndex) }
+        binding.tabLayout.post {
+            updateTabSelection(startIndex)
+            onTabSelected?.invoke(startIndex)
+        }
     }
 
     private fun createTabView(title: String) =
