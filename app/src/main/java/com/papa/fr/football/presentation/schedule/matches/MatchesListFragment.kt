@@ -96,11 +96,11 @@ class MatchesListFragment : Fragment() {
         }
         binding.rvMatches.isVisible = matches.isNotEmpty()
 
-        val futureErrorMessage = resolveFutureError(state)
-        if (futureErrorMessage != null && futureErrorMessage != lastErrorMessage) {
-            lastErrorMessage = futureErrorMessage
-            Snackbar.make(binding.root, futureErrorMessage, Snackbar.LENGTH_LONG).show()
-        } else if (futureErrorMessage == null) {
+        val errorMessage = resolveMatchesError(state)
+        if (errorMessage != null && errorMessage != lastErrorMessage) {
+            lastErrorMessage = errorMessage
+            Snackbar.make(binding.root, errorMessage, Snackbar.LENGTH_LONG).show()
+        } else if (errorMessage == null) {
             lastErrorMessage = null
         }
     }
@@ -147,7 +147,8 @@ sealed interface MatchesTabType {
 
 private fun MatchesListFragment.matchesFor(state: ScheduleUiState): List<MatchUiModel> = when (matchesType) {
     MatchesTabType.Future -> state.futureMatches
-    MatchesTabType.Live, MatchesTabType.Past -> emptyList()
+    MatchesTabType.Past -> state.pastMatches
+    MatchesTabType.Live -> emptyList()
 }
 
 private fun MatchesListFragment.placeholderTextFor(state: ScheduleUiState): String = when (matchesType) {
@@ -157,17 +158,26 @@ private fun MatchesListFragment.placeholderTextFor(state: ScheduleUiState): Stri
         else -> getString(R.string.matches_placeholder_empty)
     }
 
-    MatchesTabType.Live, MatchesTabType.Past -> getString(
+    MatchesTabType.Past -> when {
+        state.isPastMatchesLoading -> getString(R.string.matches_placeholder_loading)
+        !state.pastMatchesErrorMessage.isNullOrBlank() -> state.pastMatchesErrorMessage
+        else -> getString(R.string.matches_placeholder_empty)
+    }
+
+    MatchesTabType.Live -> getString(
         R.string.matches_placeholder_format,
         matchesType.storageKey.lowercase(Locale.getDefault())
     )
 }
 
-private fun MatchesListFragment.resolveFutureError(state: ScheduleUiState): String? {
-    if (matchesType != MatchesTabType.Future) {
-        return null
-    }
-    return state.matchesErrorMessage
+private fun MatchesListFragment.resolveMatchesError(state: ScheduleUiState): String? = when (matchesType) {
+    MatchesTabType.Future -> state.matchesErrorMessage
         ?.ifBlank { getString(R.string.matches_placeholder_empty) }
         ?.takeIf { it.isNotBlank() }
+
+    MatchesTabType.Past -> state.pastMatchesErrorMessage
+        ?.ifBlank { getString(R.string.matches_placeholder_empty) }
+        ?.takeIf { it.isNotBlank() }
+
+    MatchesTabType.Live -> null
 }

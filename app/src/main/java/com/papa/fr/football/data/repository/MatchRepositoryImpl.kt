@@ -28,32 +28,43 @@ class MatchRepositoryImpl(
     @Volatile
     private var nextLogoRequestAt: Long = 0L
 
-    override suspend fun getUpcomingMatches(uniqueTournamentId: Int, seasonId: Int): List<Match> =
-        coroutineScope {
-            val events = seasonApiService
-                .getSeasonEvents(uniqueTournamentId, seasonId)
-                .data
-                .events
+    override suspend fun getUpcomingMatches(uniqueTournamentId: Int, seasonId: Int): List<Match> {
+        return fetchMatches(uniqueTournamentId, seasonId, courseEvents = "next")
+    }
 
-            if (events.isEmpty()) {
-                return@coroutineScope emptyList()
-            }
+    override suspend fun getRecentMatches(uniqueTournamentId: Int, seasonId: Int): List<Match> {
+        return fetchMatches(uniqueTournamentId, seasonId, courseEvents = "last")
+    }
 
-            val teamIds = events.flatMap { event ->
-                listOfNotNull(event.homeTeam?.id, event.awayTeam?.id)
-            }.toSet()
+    private suspend fun fetchMatches(
+        uniqueTournamentId: Int,
+        seasonId: Int,
+        courseEvents: String,
+    ): List<Match> = coroutineScope {
+        val events = seasonApiService
+            .getSeasonEvents(uniqueTournamentId, seasonId, courseEvents = courseEvents)
+            .data
+            .events
 
-            val logos = teamIds.associateWith { teamId ->
-                async { fetchTeamLogo(teamId) }
-            }.mapValues { (_, deferred) -> deferred.await() }
-
-            events.map { event ->
-                event.toDomain(
-                    homeLogoBase64 = event.homeTeam?.id?.let { logos[it] },
-                    awayLogoBase64 = event.awayTeam?.id?.let { logos[it] },
-                )
-            }
+        if (events.isEmpty()) {
+            return@coroutineScope emptyList()
         }
+
+        val teamIds = events.flatMap { event ->
+            listOfNotNull(event.homeTeam?.id, event.awayTeam?.id)
+        }.toSet()
+
+        val logos = teamIds.associateWith { teamId ->
+            async { fetchTeamLogo(teamId) }
+        }.mapValues { (_, deferred) -> deferred.await() }
+
+        events.map { event ->
+            event.toDomain(
+                homeLogoBase64 = event.homeTeam?.id?.let { logos[it] },
+                awayLogoBase64 = event.awayTeam?.id?.let { logos[it] },
+            )
+        }
+    }
 
     private suspend fun fetchTeamLogo(teamId: Int): String {
         teamLogoCache[teamId]?.let { return it }
