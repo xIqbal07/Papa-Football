@@ -55,7 +55,7 @@ class TeamLogoProvider(
 
             cachedLogo?.let {
                 request.complete(it)
-                return@try it
+                return@let
             }
 
             if (waitDurationMs > 0L) {
@@ -135,7 +135,7 @@ class TeamLogoProvider(
     }
 
     private companion object {
-        private const val LOGO_REQUEST_INTERVAL_MS = 650L
+        private const val LOGO_REQUEST_INTERVAL_MS = 300L
         private const val MIN_BASE64_LENGTH = 32
         private val json = Json { ignoreUnknownKeys = true }
     }
