@@ -1,9 +1,11 @@
 package com.papa.fr.football.common.dropdown
 
 import android.content.Context
+import android.graphics.drawable.ColorDrawable
 import android.os.Bundle
 import android.os.Parcelable
 import android.util.AttributeSet
+import android.view.Gravity
 import android.view.LayoutInflater
 import android.widget.FrameLayout
 import androidx.core.content.ContextCompat
@@ -35,6 +37,16 @@ class LeagueDropdownView @JvmOverloads constructor(
         }
 
         binding.actv.setAdapter(adapter)
+        binding.actv.gravity = Gravity.CENTER
+        binding.actv.setPaddingRelative(
+            binding.actv.paddingStart,
+            0,
+            binding.actv.paddingEnd,
+            0
+        )
+        binding.actv.setDropDownBackgroundDrawable(
+            ColorDrawable(ContextCompat.getColor(context, R.color.matches_card_background))
+        )
         binding.actv.setOnItemClickListener { _, _, position, _ ->
             val value = adapter.getItem(position) ?: return@setOnItemClickListener
             setSelected(value)

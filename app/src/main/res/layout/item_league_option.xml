@@ -4,7 +4,7 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:background="@color/matches_card_background"
-    android:orientation="horizontal">
+    android:paddingVertical="0dp">
 
     <ImageView
         android:id="@+id/icon"
@@ -13,14 +13,18 @@
         android:contentDescription="@null"
         android:scaleType="centerInside"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent" />
 
     <TextView
         android:id="@+id/title"
         style="@style/AlexandriaBold.18sp.white"
         android:layout_width="0dp"
         android:layout_marginStart="16dp"
+        android:gravity="center_vertical"
         app:layout_constraintStart_toEndOf="@id/icon"
         app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
         tools:text="25/26" />
 </androidx.constraintlayout.widget.ConstraintLayout>

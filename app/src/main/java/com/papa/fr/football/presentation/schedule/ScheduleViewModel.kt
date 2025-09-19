@@ -1,4 +1,4 @@
-package com.papa.fr.football.presentation.schedule.season
+package com.papa.fr.football.presentation.schedule
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -13,15 +13,14 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 /**
- * Coordinates season data for the schedule feature, including the curated list of leagues
- * and the cached seasons that back the dropdowns in [com.papa.fr.football.presentation.schedule.ScheduleFragment].
+ * Coordinates league metadata and season loading for the schedule feature.
  */
-class SeasonsViewModel(
+class ScheduleViewModel(
     private val getSeasonsUseCase: GetSeasonsUseCase
 ) : ViewModel() {
 
-    private val _uiState = MutableStateFlow(SeasonsUiState())
-    val uiState: StateFlow<SeasonsUiState> = _uiState.asStateFlow()
+    private val _uiState = MutableStateFlow(ScheduleUiState())
+    val uiState: StateFlow<ScheduleUiState> = _uiState.asStateFlow()
 
     private val _leagueItems = MutableStateFlow(
         listOf(

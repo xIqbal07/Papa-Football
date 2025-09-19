@@ -15,7 +15,7 @@ import com.papa.fr.football.common.matches.MatchesTabLayoutView
 import com.papa.fr.football.databinding.FragmentScheduleBinding
 import com.papa.fr.football.matches.MatchesListFragment
 import com.papa.fr.football.matches.MatchesTabType
-import com.papa.fr.football.presentation.schedule.season.SeasonsViewModel
+import com.papa.fr.football.presentation.schedule.ScheduleViewModel
 import kotlinx.coroutines.launch
 import org.koin.androidx.viewmodel.ext.android.viewModel
 import java.util.Calendar
@@ -26,7 +26,7 @@ class ScheduleFragment : Fragment() {
     private var _binding: FragmentScheduleBinding? = null
     private val binding get() = _binding!!
 
-    private val seasonsViewModel: SeasonsViewModel by viewModel()
+    private val scheduleViewModel: ScheduleViewModel by viewModel()
 
     private var lastSeasonIdsByLeague: Map<Int, List<Int>> = emptyMap()
     private var lastErrorMessage: String? = null
@@ -51,19 +51,19 @@ class ScheduleFragment : Fragment() {
         }
 
         binding.ddSeason.setPlaceholder(defaultSeasonLabel())
-        binding.ddLeague.setPlaceholder(seasonsViewModel.defaultLeagueLabel())
+        binding.ddLeague.setPlaceholder(scheduleViewModel.defaultLeagueLabel())
 
         binding.btnSchedule.setOnClickListener {
             val selectedLeagueId = binding.ddLeague.getSelected()?.id
             if (selectedLeagueId != null) {
-                seasonsViewModel.loadSeasonsForLeague(selectedLeagueId)
+                scheduleViewModel.loadSeasonsForLeague(selectedLeagueId)
             } else {
-                seasonsViewModel.loadAllLeagueSeasons()
+                scheduleViewModel.loadAllLeagueSeasons()
             }
         }
 
-        if (seasonsViewModel.uiState.value.seasonsByLeague.isEmpty()) {
-            seasonsViewModel.loadAllLeagueSeasons()
+        if (scheduleViewModel.uiState.value.seasonsByLeague.isEmpty()) {
+            scheduleViewModel.loadAllLeagueSeasons()
         }
     }
 
@@ -87,7 +87,7 @@ class ScheduleFragment : Fragment() {
     private fun observeSeasons() {
         viewLifecycleOwner.lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
-                seasonsViewModel.uiState.collect { state ->
+                scheduleViewModel.uiState.collect { state ->
                     val seasonIdsByLeague = state.seasonsByLeague.mapValues { entry ->
                         entry.value.map { it.id }
                     }
@@ -112,7 +112,7 @@ class ScheduleFragment : Fragment() {
     private fun observeLeagues() {
         viewLifecycleOwner.lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
-                seasonsViewModel.leagueItems.collect { leagues ->
+                scheduleViewModel.leagueItems.collect { leagues ->
                     if (leagues.isNotEmpty()) {
                         binding.ddLeague.setData(leagues)
                         if (binding.ddLeague.getSelected() == null) {
@@ -126,7 +126,7 @@ class ScheduleFragment : Fragment() {
     }
 
     private fun updateSeasonDropdown(leagueId: Int?) {
-        val seasons = leagueId?.let { seasonsViewModel.seasonsForLeague(it) }.orEmpty()
+        val seasons = leagueId?.let { scheduleViewModel.seasonsForLeague(it) }.orEmpty()
         if (seasons.isEmpty()) {
             binding.ddSeason.setData(emptyList())
             binding.ddSeason.setPlaceholder(defaultSeasonLabel())
