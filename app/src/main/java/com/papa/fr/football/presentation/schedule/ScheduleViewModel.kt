@@ -13,6 +13,7 @@ import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
+import java.util.concurrent.atomic.AtomicReference
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -72,6 +73,10 @@ class ScheduleViewModel(
         return _uiState.value.seasonsByLeague[leagueId].orEmpty()
     }
 
+    // Remembers the user's last manual selection so background reloads don't override it.
+    private val pendingUserLeagueId = AtomicReference<Int?>(null)
+    private val pendingUserSeasonId = AtomicReference<Int?>(null)
+
     /**
      * Loads seasons for every league and progressively emits match updates as each response arrives.
      */
@@ -82,8 +87,8 @@ class ScheduleViewModel(
 
         viewModelScope.launch {
             val previousState = _uiState.value
-            var desiredLeagueId = previousState.selectedLeagueId
-            var desiredSeasonId = previousState.selectedSeasonId
+            var desiredLeagueId = pendingUserLeagueId.get() ?: previousState.selectedLeagueId
+            var desiredSeasonId = pendingUserSeasonId.get() ?: previousState.selectedSeasonId
 
             val seasonsByLeague = mutableMapOf<Int, List<Season>>()
             val matchesByLeagueSeason = mutableMapOf<Int, MutableMap<Int, List<MatchUiModel.Future>>>()
@@ -105,13 +110,17 @@ class ScheduleViewModel(
             }
 
             fun emitProgress() {
+                val preferredLeagueId = pendingUserLeagueId.get() ?: desiredLeagueId
+                val preferredSeasonId = pendingUserSeasonId.get() ?: desiredSeasonId
                 val (resolvedLeagueId, resolvedSeasonId) = determineSelection(
                     seasonsByLeague = seasonsByLeague,
-                    preferredLeagueId = desiredLeagueId,
-                    preferredSeasonId = desiredSeasonId,
+                    preferredLeagueId = preferredLeagueId,
+                    preferredSeasonId = preferredSeasonId,
                 )
                 desiredLeagueId = resolvedLeagueId
                 desiredSeasonId = resolvedSeasonId
+                pendingUserLeagueId.set(resolvedLeagueId)
+                pendingUserSeasonId.set(resolvedSeasonId)
 
                 val selectedMatches = resolvedLeagueId?.let { leagueId ->
                     resolvedSeasonId?.let { seasonId ->
@@ -230,6 +239,8 @@ class ScheduleViewModel(
                 isMatchesLoading = !isSelectionLoaded,
             )
         }
+        pendingUserLeagueId.set(leagueId)
+        pendingUserSeasonId.set(_uiState.value.selectedSeasonId)
     }
 
     fun onSeasonSelected(seasonId: Int) {
@@ -255,6 +266,7 @@ class ScheduleViewModel(
                 isMatchesLoading = !isSelectionLoaded,
             )
         }
+        pendingUserSeasonId.set(seasonId)
     }
 
     private fun determineSelection(
@@ -264,13 +276,14 @@ class ScheduleViewModel(
     ): Pair<Int?, Int?> {
         val availableLeagueIds = _leagueItems.value.map { it.id }
         val resolvedLeagueId = when {
-            preferredLeagueId != null && seasonsByLeague[preferredLeagueId].orEmpty().isNotEmpty() ->
+            preferredLeagueId != null && availableLeagueIds.contains(preferredLeagueId) ->
                 preferredLeagueId
             else -> availableLeagueIds.firstOrNull { seasonsByLeague[it].orEmpty().isNotEmpty() }
         }
 
         val seasons = resolvedLeagueId?.let { seasonsByLeague[it] }.orEmpty()
         val resolvedSeasonId = when {
+            seasons.isEmpty() -> null
             preferredSeasonId != null && seasons.any { it.id == preferredSeasonId } ->
                 preferredSeasonId
             else -> seasons.firstOrNull()?.id
