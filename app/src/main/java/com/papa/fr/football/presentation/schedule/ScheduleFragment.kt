@@ -46,43 +46,10 @@ class ScheduleFragment : Fragment() {
         super.onViewCreated(view, savedInstanceState)
         setupMatchesTabs()
         observeSeasons()
+        observeLeagues()
 
         binding.ddSeason.setPlaceholder(defaultSeasonLabel())
-        binding.ddLeague.setPlaceholder("La Liga")
-        binding.ddLeague.setData(
-            listOf(
-                LeagueItem(
-                    id = 8.toString(),
-                    name = "La Liga",
-                    iconRes = R.drawable.ic_laliga
-                ),
-                LeagueItem(
-                    id = 17.toString(),
-                    name = "Premier League",
-                    iconRes = R.drawable.ic_premier_league
-                ),
-                LeagueItem(
-                    id = 35.toString(),
-                    name = "Bundesliga",
-                    iconRes = R.drawable.ic_bundesliga
-                ),
-                LeagueItem(
-                    id = 34.toString(),
-                    name = "La Liga",
-                    iconRes = R.drawable.ic_ligue
-                ),
-                LeagueItem(
-                    id = 23.toString(),
-                    name = "Serie A",
-                    iconRes = R.drawable.ic_serie_a
-                ),
-                LeagueItem(
-                    id = 37.toString(),
-                    name = "Eredivise",
-                    iconRes = R.drawable.eredivisie
-                ),
-            )
-        )
+        binding.ddLeague.setPlaceholder(seasonsViewModel.defaultLeagueLabel())
 
         binding.btnSchedule.setOnClickListener {
             seasonsViewModel.loadSeasons(DEFAULT_UNIQUE_TOURNAMENT_ID)
@@ -133,6 +100,18 @@ class ScheduleFragment : Fragment() {
                         Snackbar.make(binding.root, errorMessage, Snackbar.LENGTH_LONG).show()
                     } else if (errorMessage == null) {
                         lastErrorMessage = null
+                    }
+                }
+            }
+        }
+    }
+
+    private fun observeLeagues() {
+        viewLifecycleOwner.lifecycleScope.launch {
+            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                seasonsViewModel.leagueItems.collect { leagues ->
+                    if (leagues.isNotEmpty()) {
+                        binding.ddLeague.setData(leagues)
                     }
                 }
             }
