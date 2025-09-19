@@ -11,9 +11,14 @@ import com.papa.fr.football.domain.usecase.GetLiveMatchesUseCase
 import com.papa.fr.football.domain.usecase.GetSeasonsUseCase
 import com.papa.fr.football.domain.usecase.GetUpcomingMatchesUseCase
 import com.papa.fr.football.presentation.schedule.matches.MatchUiModel
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.onCompletion
+import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.time.Instant
@@ -33,6 +38,8 @@ class ScheduleViewModel(
 
     private val _uiState = MutableStateFlow(ScheduleUiState())
     val uiState: StateFlow<ScheduleUiState> = _uiState.asStateFlow()
+
+    private var liveMatchesJob: Job? = null
 
     private val _leagueItems = MutableStateFlow(
         listOf(
@@ -276,11 +283,14 @@ class ScheduleViewModel(
     }
 
     private fun loadLiveMatches(forceRefresh: Boolean) {
-        if (!forceRefresh && _uiState.value.isLiveMatchesLoading) {
+        if (!forceRefresh && (liveMatchesJob?.isActive == true || _uiState.value.isLiveMatchesLoading)) {
             return
         }
 
-        viewModelScope.launch {
+        liveMatchesJob?.cancel()
+        val job = viewModelScope.launch {
+            val jobReference = coroutineContext[Job]
+            var hasEmitted = false
             _uiState.update {
                 it.copy(
                     isLiveMatchesLoading = true,
@@ -288,27 +298,46 @@ class ScheduleViewModel(
                 )
             }
 
-            val liveMatchesResult = runCatching { getLiveMatchesUseCase(LIVE_SPORT_ID) }
-            _uiState.update { state ->
-                liveMatchesResult.fold(
-                    onSuccess = { matches ->
-                        state.copy(
-                            liveMatches = matches.map { it.toUiModel() },
-                            isLiveMatchesLoading = false,
+            getLiveMatchesUseCase(LIVE_SPORT_ID)
+                .onEach { matches ->
+                    val uiModels = matches.map { it.toUiModel() }
+                    val shouldClearLoading = !hasEmitted
+                    hasEmitted = true
+                    _uiState.update { state ->
+                        var newState = state.copy(
+                            liveMatches = uiModels,
                             liveMatchesErrorMessage = null,
                         )
-                    },
-                    onFailure = { throwable ->
-                        state.copy(
+                        if (shouldClearLoading) {
+                            newState = newState.copy(isLiveMatchesLoading = false)
+                        }
+                        newState
+                    }
+                }
+                .catch { throwable ->
+                    hasEmitted = true
+                    _uiState.update {
+                        it.copy(
                             liveMatches = emptyList(),
-                            isLiveMatchesLoading = false,
                             liveMatchesErrorMessage =
                                 throwable.message ?: DEFAULT_LIVE_MATCHES_ERROR_MESSAGE,
+                            isLiveMatchesLoading = false,
                         )
                     }
-                )
-            }
+                }
+                .onCompletion {
+                    if (liveMatchesJob == jobReference) {
+                        if (!hasEmitted) {
+                            _uiState.update { state ->
+                                state.copy(isLiveMatchesLoading = false)
+                            }
+                        }
+                        liveMatchesJob = null
+                    }
+                }
+                .collect()
         }
+        liveMatchesJob = job
     }
 
     private fun determineSelection(

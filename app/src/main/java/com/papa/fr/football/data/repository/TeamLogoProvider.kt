@@ -57,6 +57,8 @@ class TeamLogoProvider(
         return sanitizedLogo
     }
 
+    fun peekCachedLogo(teamId: Int): String? = teamLogoCache[teamId]
+
     private fun String?.sanitizeBase64(): String {
         if (this.isNullOrBlank()) return ""
         val delimiter = "base64,"
