@@ -4,8 +4,10 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.papa.fr.football.R
 import com.papa.fr.football.common.dropdown.LeagueItem
+import com.papa.fr.football.domain.model.LiveMatch
 import com.papa.fr.football.domain.model.Match
 import com.papa.fr.football.domain.model.Season
+import com.papa.fr.football.domain.usecase.GetLiveMatchesUseCase
 import com.papa.fr.football.domain.usecase.GetSeasonsUseCase
 import com.papa.fr.football.domain.usecase.GetUpcomingMatchesUseCase
 import com.papa.fr.football.presentation.schedule.matches.MatchUiModel
@@ -26,6 +28,7 @@ import java.util.concurrent.atomic.AtomicReference
 class ScheduleViewModel(
     private val getSeasonsUseCase: GetSeasonsUseCase,
     private val getUpcomingMatchesUseCase: GetUpcomingMatchesUseCase,
+    private val getLiveMatchesUseCase: GetLiveMatchesUseCase,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(ScheduleUiState())
@@ -81,6 +84,7 @@ class ScheduleViewModel(
      * Loads seasons for every league and progressively emits match updates as each response arrives.
      */
     fun loadAllLeagueSeasons(forceRefresh: Boolean = false) {
+        loadLiveMatches(forceRefresh)
         if (!forceRefresh && _uiState.value.isDataLoaded) {
             return
         }
@@ -271,6 +275,42 @@ class ScheduleViewModel(
         pendingUserSeasonId.set(seasonId)
     }
 
+    private fun loadLiveMatches(forceRefresh: Boolean) {
+        if (!forceRefresh && _uiState.value.isLiveMatchesLoading) {
+            return
+        }
+
+        viewModelScope.launch {
+            _uiState.update {
+                it.copy(
+                    isLiveMatchesLoading = true,
+                    liveMatchesErrorMessage = null,
+                )
+            }
+
+            val liveMatchesResult = runCatching { getLiveMatchesUseCase(LIVE_SPORT_ID) }
+            _uiState.update { state ->
+                liveMatchesResult.fold(
+                    onSuccess = { matches ->
+                        state.copy(
+                            liveMatches = matches.map { it.toUiModel() },
+                            isLiveMatchesLoading = false,
+                            liveMatchesErrorMessage = null,
+                        )
+                    },
+                    onFailure = { throwable ->
+                        state.copy(
+                            liveMatches = emptyList(),
+                            isLiveMatchesLoading = false,
+                            liveMatchesErrorMessage =
+                                throwable.message ?: DEFAULT_LIVE_MATCHES_ERROR_MESSAGE,
+                        )
+                    }
+                )
+            }
+        }
+    }
+
     private fun determineSelection(
         seasonsByLeague: Map<Int, List<Season>>,
         preferredLeagueId: Int?,
@@ -319,6 +359,21 @@ class ScheduleViewModel(
         )
     }
 
+    private fun LiveMatch.toUiModel(): MatchUiModel.Live {
+        return MatchUiModel.Live(
+            id = id,
+            homeTeamId = homeTeam.id,
+            homeTeamName = homeTeam.name,
+            awayTeamId = awayTeam.id,
+            awayTeamName = awayTeam.name,
+            homeScore = homeScore,
+            awayScore = awayScore,
+            homeLogoBase64 = homeTeam.logoBase64,
+            awayLogoBase64 = awayTeam.logoBase64,
+            statusLabel = status,
+        )
+    }
+
     private fun toInstant(timestamp: Long): Instant {
         return if (timestamp < 1_000_000_000_000L) {
             Instant.ofEpochSecond(timestamp)
@@ -332,5 +387,7 @@ class ScheduleViewModel(
         private val TIME_FORMATTER: DateTimeFormatter = DateTimeFormatter.ofPattern("HH:mm")
         private const val DEFAULT_SEASONS_ERROR_MESSAGE = "Unable to load seasons"
         private const val DEFAULT_MATCHES_ERROR_MESSAGE = "Unable to load matches"
+        private const val DEFAULT_LIVE_MATCHES_ERROR_MESSAGE = "Unable to load live matches"
+        private const val LIVE_SPORT_ID = 1
     }
 }

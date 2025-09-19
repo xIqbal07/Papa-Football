@@ -7,6 +7,8 @@
     <string name="matches_placeholder_format">This is the %1$s matches screen.</string>
     <string name="matches_placeholder_empty">There are currently no matches to display.</string>
     <string name="matches_placeholder_loading">Loading upcoming matches…</string>
+    <string name="matches_placeholder_empty_live">There are no live matches right now.</string>
+    <string name="matches_placeholder_loading_live">Loading live matches…</string>
     <string name="bottom_nav_schedule">Schedule</string>
     <string name="bottom_nav_highlights">Highlights</string>
     <string name="bottom_nav_teams">Teams</string>

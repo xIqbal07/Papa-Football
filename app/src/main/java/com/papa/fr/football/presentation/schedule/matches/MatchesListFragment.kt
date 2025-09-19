@@ -147,7 +147,8 @@ sealed interface MatchesTabType {
 
 private fun MatchesListFragment.matchesFor(state: ScheduleUiState): List<MatchUiModel> = when (matchesType) {
     MatchesTabType.Future -> state.futureMatches
-    MatchesTabType.Live, MatchesTabType.Past -> emptyList()
+    MatchesTabType.Live -> state.liveMatches
+    MatchesTabType.Past -> emptyList()
 }
 
 private fun MatchesListFragment.placeholderTextFor(state: ScheduleUiState): String = when (matchesType) {
@@ -157,7 +158,13 @@ private fun MatchesListFragment.placeholderTextFor(state: ScheduleUiState): Stri
         else -> getString(R.string.matches_placeholder_empty)
     }
 
-    MatchesTabType.Live, MatchesTabType.Past -> getString(
+    MatchesTabType.Live -> when {
+        state.isLiveMatchesLoading -> getString(R.string.matches_placeholder_loading_live)
+        !state.liveMatchesErrorMessage.isNullOrBlank() -> state.liveMatchesErrorMessage
+        else -> getString(R.string.matches_placeholder_empty_live)
+    }
+
+    MatchesTabType.Past -> getString(
         R.string.matches_placeholder_format,
         matchesType.storageKey.lowercase(Locale.getDefault())
     )
