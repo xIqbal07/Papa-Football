@@ -16,7 +16,7 @@ import com.papa.fr.football.databinding.FragmentScheduleBinding
 import com.papa.fr.football.matches.MatchesListFragment
 import com.papa.fr.football.matches.MatchesTabType
 import kotlinx.coroutines.launch
-import org.koin.androidx.viewmodel.ext.android.viewModel
+import org.koin.androidx.viewmodel.ext.android.sharedViewModel
 import java.util.Calendar
 import java.util.Locale
 
@@ -25,7 +25,7 @@ class ScheduleFragment : Fragment() {
     private var _binding: FragmentScheduleBinding? = null
     private val binding get() = _binding!!
 
-    private val scheduleViewModel: ScheduleViewModel by viewModel()
+    private val scheduleViewModel: ScheduleViewModel by sharedViewModel()
 
     private var lastSeasonIdsByLeague: Map<Int, List<Int>> = emptyMap()
     private var lastErrorMessage: String? = null

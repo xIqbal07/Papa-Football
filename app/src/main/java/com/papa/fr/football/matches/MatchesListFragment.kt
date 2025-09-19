@@ -25,7 +25,7 @@ class MatchesListFragment : Fragment() {
     private val binding: FragmentMatchesListBinding
         get() = requireNotNull(_binding)
 
-    private val scheduleViewModel: ScheduleViewModel by sharedViewModel(from = { requireParentFragment() })
+    private val scheduleViewModel: ScheduleViewModel by sharedViewModel()
     private val matchesAdapter = MatchesAdapter()
     private var lastErrorMessage: String? = null
     private lateinit var matchesType: MatchesTabType
