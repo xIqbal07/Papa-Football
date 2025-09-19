@@ -9,6 +9,7 @@ import android.widget.FrameLayout
 import androidx.core.content.ContextCompat
 import androidx.core.content.withStyledAttributes
 import androidx.core.graphics.drawable.toDrawable
+import androidx.core.os.BundleCompat
 import com.papa.fr.football.R
 import com.papa.fr.football.databinding.ItemLeagueDropdownBinding
 
@@ -143,7 +144,10 @@ class LeagueDropdownView @JvmOverloads constructor(
 
     override fun onRestoreInstanceState(state: Parcelable?) {
         val bundle = state as? Bundle
-        super.onRestoreInstanceState(bundle?.getParcelable("super"))
+        val superState = bundle?.let {
+            BundleCompat.getParcelable(it, "super", Parcelable::class.java)
+        }
+        super.onRestoreInstanceState(superState)
         placeholderText = bundle?.getString("placeholder")
         val hasSelectedId = bundle?.containsKey("selectedId") == true
         val id = bundle?.getInt("selectedId")
