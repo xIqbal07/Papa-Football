@@ -1,6 +1,7 @@
 package com.papa.fr.football.presentation.schedule
 
 import android.os.Bundle
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -15,22 +16,20 @@ import com.papa.fr.football.common.matches.MatchesTabLayoutView
 import com.papa.fr.football.databinding.FragmentScheduleBinding
 import com.papa.fr.football.matches.MatchesListFragment
 import com.papa.fr.football.matches.MatchesTabType
-import com.papa.fr.football.presentation.seasons.SeasonsViewModel
+import com.papa.fr.football.presentation.schedule.ScheduleViewModel
 import kotlinx.coroutines.launch
 import org.koin.androidx.viewmodel.ext.android.viewModel
 import java.util.Calendar
 import java.util.Locale
-
-private const val DEFAULT_UNIQUE_TOURNAMENT_ID = 8
 
 class ScheduleFragment : Fragment() {
 
     private var _binding: FragmentScheduleBinding? = null
     private val binding get() = _binding!!
 
-    private val seasonsViewModel: SeasonsViewModel by viewModel()
+    private val scheduleViewModel: ScheduleViewModel by viewModel()
 
-    private var lastSeasonIds: List<Int> = emptyList()
+    private var lastSeasonIdsByLeague: Map<Int, List<Int>> = emptyMap()
     private var lastErrorMessage: String? = null
 
     override fun onCreateView(
@@ -46,50 +45,27 @@ class ScheduleFragment : Fragment() {
         super.onViewCreated(view, savedInstanceState)
         setupMatchesTabs()
         observeSeasons()
+        observeLeagues()
 
-        binding.ddSeason.setPlaceholder(defaultSeasonLabel())
-        binding.ddLeague.setPlaceholder("La Liga")
-        binding.ddLeague.setData(
-            listOf(
-                LeagueItem(
-                    id = 8.toString(),
-                    name = "La Liga",
-                    iconRes = R.drawable.ic_laliga
-                ),
-                LeagueItem(
-                    id = 17.toString(),
-                    name = "Premier League",
-                    iconRes = R.drawable.ic_premier_league
-                ),
-                LeagueItem(
-                    id = 35.toString(),
-                    name = "Bundesliga",
-                    iconRes = R.drawable.ic_bundesliga
-                ),
-                LeagueItem(
-                    id = 34.toString(),
-                    name = "La Liga",
-                    iconRes = R.drawable.ic_ligue
-                ),
-                LeagueItem(
-                    id = 23.toString(),
-                    name = "Serie A",
-                    iconRes = R.drawable.ic_serie_a
-                ),
-                LeagueItem(
-                    id = 37.toString(),
-                    name = "Eredivise",
-                    iconRes = R.drawable.eredivisie
-                ),
-            )
-        )
-
-        binding.btnSchedule.setOnClickListener {
-            seasonsViewModel.loadSeasons(DEFAULT_UNIQUE_TOURNAMENT_ID)
+        binding.ddLeague.setOnChangedListener { league ->
+            Log.d("IQBAL-TEST", "onViewCreated: $league")
+            updateSeasonDropdown(league.id)
         }
 
-        if (seasonsViewModel.uiState.value.seasons.isEmpty()) {
-            seasonsViewModel.loadSeasons(DEFAULT_UNIQUE_TOURNAMENT_ID)
+        binding.ddSeason.setPlaceholder(defaultSeasonLabel())
+        binding.ddLeague.setPlaceholder(scheduleViewModel.defaultLeagueLabel())
+
+        binding.btnSchedule.setOnClickListener {
+            val selectedLeagueId = binding.ddLeague.getSelected()?.id
+            if (selectedLeagueId != null) {
+                scheduleViewModel.loadSeasonsForLeague(selectedLeagueId)
+            } else {
+                scheduleViewModel.loadAllLeagueSeasons()
+            }
+        }
+
+        if (scheduleViewModel.uiState.value.seasonsByLeague.isEmpty()) {
+            scheduleViewModel.loadAllLeagueSeasons()
         }
     }
 
@@ -113,17 +89,13 @@ class ScheduleFragment : Fragment() {
     private fun observeSeasons() {
         viewLifecycleOwner.lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
-                seasonsViewModel.uiState.collect { state ->
-                    val seasonIds = state.seasons.map { it.id }
-                    if (seasonIds != lastSeasonIds && state.seasons.isNotEmpty()) {
-                        lastSeasonIds = seasonIds
-                        val items = state.seasons.map { season ->
-                            LeagueItem(
-                                id = season.id.toString(),
-                                name = season.year.orEmpty()
-                            )
-                        }
-                        binding.ddSeason.setData(items)
+                scheduleViewModel.uiState.collect { state ->
+                    val seasonIdsByLeague = state.seasonsByLeague.mapValues { entry ->
+                        entry.value.map { it.id }
+                    }
+                    if (seasonIdsByLeague != lastSeasonIdsByLeague) {
+                        lastSeasonIdsByLeague = seasonIdsByLeague
+                        updateSeasonDropdown(binding.ddLeague.getSelected()?.id)
                     }
 
                     val errorMessage =
@@ -137,6 +109,40 @@ class ScheduleFragment : Fragment() {
                 }
             }
         }
+    }
+
+    private fun observeLeagues() {
+        viewLifecycleOwner.lifecycleScope.launch {
+            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                scheduleViewModel.leagueItems.collect { leagues ->
+                    if (leagues.isNotEmpty()) {
+                        binding.ddLeague.setData(leagues)
+                        if (binding.ddLeague.getSelected() == null) {
+                            binding.ddLeague.setSelected(leagues.first())
+                            updateSeasonDropdown(leagues.first().id)
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private fun updateSeasonDropdown(leagueId: Int?) {
+        val seasons = leagueId?.let { scheduleViewModel.seasonsForLeague(it) }.orEmpty()
+        if (seasons.isEmpty()) {
+            binding.ddSeason.setData(emptyList())
+            binding.ddSeason.setPlaceholder(defaultSeasonLabel())
+            return
+        }
+
+        val seasonItems = seasons.map { season ->
+            Log.d("IQBAL-TEST", "updateSeasonDropdown: $seasons")
+            LeagueItem(
+                id = season.id,
+                name = season.year.orEmpty()
+            )
+        }
+        binding.ddSeason.setData(seasonItems)
     }
 
     private fun defaultSeasonLabel(): String {

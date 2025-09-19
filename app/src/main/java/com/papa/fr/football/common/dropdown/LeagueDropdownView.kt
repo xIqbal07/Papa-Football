@@ -129,12 +129,13 @@ class LeagueDropdownView @JvmOverloads constructor(
         binding.actv.isEnabled = enabled
     }
 
+
     /** Save/restore selection across rotations **/
     override fun onSaveInstanceState(): Parcelable {
         val superState = super.onSaveInstanceState()
         return Bundle().apply {
             putParcelable("super", superState)
-            putString("selectedId", getSelected()?.id)
+            getSelected()?.id?.let { putInt("selectedId", it) }
             putString("placeholder", placeholderText)
         }
     }
@@ -143,9 +144,10 @@ class LeagueDropdownView @JvmOverloads constructor(
         val bundle = state as? Bundle
         super.onRestoreInstanceState(bundle?.getParcelable("super"))
         placeholderText = bundle?.getString("placeholder")
-        val id = bundle?.getString("selectedId")
+        val hasSelectedId = bundle?.containsKey("selectedId") == true
+        val id = bundle?.getInt("selectedId")
         when {
-            id != null -> {
+            hasSelectedId && id != null -> {
                 leagues.firstOrNull { it.id == id }?.let { setSelected(it) }
             }
 

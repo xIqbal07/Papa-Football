@@ -3,7 +3,7 @@ package com.papa.fr.football.common.dropdown
 import androidx.annotation.DrawableRes
 
 data class LeagueItem(
-    val id: String,
+    val id: Int,
     val name: String,
     @DrawableRes val iconRes: Int? = null
 ) {
