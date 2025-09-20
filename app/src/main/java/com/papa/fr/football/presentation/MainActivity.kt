@@ -10,15 +10,22 @@ import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.commit
+import androidx.lifecycle.lifecycleScope
 import com.google.android.material.bottomnavigation.BottomNavigationView
 import com.papa.fr.football.R
 import com.papa.fr.football.databinding.ActivityMainBinding
 import com.papa.fr.football.presentation.navigation.PlaceholderFragment
 import com.papa.fr.football.presentation.schedule.ScheduleFragment
+import com.papa.fr.football.presentation.signin.SignInFragment
+import com.papa.fr.football.domain.repository.UserPreferencesRepository
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
+import org.koin.android.ext.android.inject
 
 class MainActivity : AppCompatActivity() {
     private lateinit var binding: ActivityMainBinding
     private var selectedItemId: Int = R.id.menu_schedule
+    private val userPreferencesRepository: UserPreferencesRepository by inject()
     private val navigationDestinations by lazy {
         listOf(
             NavigationDestination(
@@ -63,10 +70,26 @@ class MainActivity : AppCompatActivity() {
 
         selectedItemId = savedInstanceState?.getInt(KEY_SELECTED_ITEM) ?: R.id.menu_schedule
         setupBottomNav(binding.bottomNavigation)
+        binding.bottomNavigation.isVisible = false
         if (savedInstanceState == null) {
-            navigateTo(selectedItemId)
+            lifecycleScope.launch {
+                val preferences = userPreferencesRepository.preferencesFlow.first()
+                if (preferences.isSignedIn) {
+                    binding.bottomNavigation.isVisible = true
+                    navigateTo(selectedItemId)
+                    binding.bottomNavigation.selectedItemId = selectedItemId
+                } else {
+                    binding.bottomNavigation.isVisible = false
+                    showSignIn()
+                }
+            }
+        } else {
+            binding.bottomNavigation.selectedItemId = selectedItemId
+            lifecycleScope.launch {
+                val preferences = userPreferencesRepository.preferencesFlow.first()
+                binding.bottomNavigation.isVisible = preferences.isSignedIn
+            }
         }
-        binding.bottomNavigation.selectedItemId = selectedItemId
     }
 
     private fun setupBottomNav(bottomNav: BottomNavigationView) {
@@ -101,6 +124,20 @@ class MainActivity : AppCompatActivity() {
 
     fun setBottomNavVisible(isVisible: Boolean) {
         binding.bottomNavigation.isVisible = isVisible
+    }
+
+    fun onUserSignedIn() {
+        binding.bottomNavigation.isVisible = true
+        selectedItemId = R.id.menu_schedule
+        navigateTo(selectedItemId)
+        binding.bottomNavigation.selectedItemId = selectedItemId
+    }
+
+    private fun showSignIn() {
+        supportFragmentManager.commit {
+            setReorderingAllowed(true)
+            replace(R.id.fragment_container, SignInFragment(), SignInFragment.TAG)
+        }
     }
 
     private fun placeholderDestination(
