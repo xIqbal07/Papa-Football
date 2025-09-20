@@ -3,7 +3,7 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
-    android:layout_height="match_parent">
+    android:layout_height="wrap_content">
 
     <ImageView
         android:id="@+id/iv_logo"
@@ -29,11 +29,39 @@
         android:id="@+id/iv_indicator_active"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:src="@drawable/ic_bullets"
         android:layout_marginStart="12dp"
+        android:src="@drawable/ic_bullets"
         app:layout_constraintBottom_toBottomOf="@id/iv_logo"
         app:layout_constraintStart_toEndOf="@id/tv_team_name"
         app:layout_constraintTop_toTopOf="@id/iv_logo"
         tools:ignore="contentDescription" />
+
+    <ImageView
+        android:id="@+id/iv_end_icon"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginEnd="12dp"
+        android:src="@drawable/ic_cancel"
+        app:layout_constraintBottom_toBottomOf="@id/iv_logo"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toTopOf="@id/iv_logo"
+        tools:ignore="contentDescription" />
+
+    <View
+        android:id="@+id/v_divider"
+        android:layout_width="wrap_content"
+        android:layout_height="0.5dp"
+        android:background="@color/matches_divider"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent" />
+
+    <androidx.constraintlayout.widget.Group
+        android:id="@+id/group_edit"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:visibility="gone"
+        tools:visibility="visible"
+        app:constraint_referenced_ids="iv_end_icon, v_divider" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

@@ -15,4 +15,5 @@
     <color name="matches_secondary_text">#A5B6CB</color>
     <color name="matches_score_text">#F5F8FF</color>
     <color name="matches_divider">#22324A</color>
+    <color name="dark_blue">#0C2946</color>
 </resources>

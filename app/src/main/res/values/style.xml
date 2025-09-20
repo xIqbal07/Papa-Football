@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <style name="CircleImageStyle">
+        <item name="cornerFamily">rounded</item>
+        <item name="cornerSize">50%</item>
+    </style>
+
+    <style name="Button" parent="Widget.MaterialComponents.Button">
+        <item name="android:layout_width">0dp</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:textAppearance">@style/AlexandriaBold.12sp</item>
+        <item name="cornerRadius">8dp</item>
+    </style>
+
+    <style name="Button.Primary" parent="Button">
+        <item name="android:backgroundTint">@color/cyan</item>
+        <item name="android:textColor">@color/black</item>
+    </style>
+
+    <style name="Button.Secondary" parent="Button">
+        <item name="android:backgroundTint">@color/black</item>
+        <item name="android:textColor">@color/white</item>
+    </style>
+</resources>

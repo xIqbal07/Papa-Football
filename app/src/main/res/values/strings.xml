@@ -22,4 +22,9 @@
     <string name="placeholder_coming_soon">Coming soon: %1$s</string>
     <string name="schedule_last_updated">Updated %1$s</string>
     <string name="schedule_last_updated_placeholder">Updated --</string>
+    <string name="registration">Registration</string>
+    <string name="sign_in">Sign in</string>
+    <string name="favourite_teams">Favourite teams</string>
+    <string name="add_team">Add Team</string>
+    <string name="profile">Profile</string>
 </resources>

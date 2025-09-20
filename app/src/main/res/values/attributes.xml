@@ -11,7 +11,9 @@
 
     <declare-styleable name="ItemListTeam">
         <attr name="logo" format="reference" />
+        <attr name="endIconLogo" format="reference" />
         <attr name="title" format="string" />
         <attr name="active" format="boolean" />
+        <attr name="isEdit" format="boolean" />
     </declare-styleable>
 </resources>

@@ -37,6 +37,11 @@
         <item name="android:textColor">@color/cyan</item>
     </style>
 
+    <style name="AlexandriaBold.black" parent="AlexandriaBold">
+        <item name="android:textColor">@color/black</item>
+    </style>
+
+
     <style name="AlexandriaBold.white" parent="AlexandriaBold">
         <item name="android:textColor">@color/white</item>
     </style>
@@ -59,6 +64,14 @@
 
     <style name="AlexandriaBold.10sp.white" parent="AlexandriaBold.white">
         <item name="android:textSize">10sp</item>
+    </style>
+
+    <style name="AlexandriaBold.12sp" parent="AlexandriaBold">
+        <item name="android:textSize">12sp</item>
+    </style>
+
+    <style name="AlexandriaBold.12sp.black" parent="AlexandriaBold.12sp">
+        <item name="android:textSize">12sp</item>
     </style>
 
     <style name="AlexandriaBold.12sp.white" parent="AlexandriaBold.white">
