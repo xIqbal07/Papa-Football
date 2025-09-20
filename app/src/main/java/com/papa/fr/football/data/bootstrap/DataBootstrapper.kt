@@ -36,7 +36,35 @@ class DataBootstrapper(
                 seasonRepository.getUniqueTournamentSeasons(league.id, forceRefresh)
             }.getOrElse { return@forEach }
 
-            val futureSeasons = seasons.take(ScheduleConfig.FUTURE_SEASON_LIMIT)
+            val prioritizedSeason = seasons.firstOrNull()
+
+            if (prioritizedSeason != null) {
+                runCatching {
+                    matchRepository.warmUpcomingMatches(
+                        uniqueTournamentId = league.id,
+                        seasonId = prioritizedSeason.id,
+                        forceRefresh = forceRefresh,
+                        prefetchLogos = true,
+                    )
+                }
+
+                runCatching {
+                    matchRepository.warmRecentMatches(
+                        uniqueTournamentId = league.id,
+                        seasonId = prioritizedSeason.id,
+                        forceRefresh = forceRefresh,
+                        prefetchLogos = true,
+                    )
+                }
+            }
+
+            val remainingSeasons = if (prioritizedSeason != null) {
+                seasons.filterNot { it.id == prioritizedSeason.id }
+            } else {
+                seasons
+            }
+
+            val futureSeasons = remainingSeasons.take(ScheduleConfig.FUTURE_SEASON_LIMIT)
             futureSeasons.forEach { season ->
                 try {
                     matchPrefetchQueue.enqueueUpcoming(
@@ -49,7 +77,7 @@ class DataBootstrapper(
                 }
             }
 
-            val pastSeasons = seasons.take(ScheduleConfig.PAST_SEASON_LIMIT)
+            val pastSeasons = remainingSeasons.take(ScheduleConfig.PAST_SEASON_LIMIT)
             pastSeasons.forEach { season ->
                 try {
                     matchPrefetchQueue.enqueuePast(
