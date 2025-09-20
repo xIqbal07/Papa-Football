@@ -1,7 +1,8 @@
 package com.papa.fr.football.domain.repository
 
 import com.papa.fr.football.domain.model.LeagueTeam
+import kotlinx.coroutines.flow.Flow
 
 interface TeamRepository {
-    suspend fun getTeamsForLeague(leagueId: Int): List<LeagueTeam>
+    fun getTeamsForLeague(leagueId: Int): Flow<List<LeagueTeam>>
 }

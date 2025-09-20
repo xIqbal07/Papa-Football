@@ -8,10 +8,12 @@ import com.papa.fr.football.domain.model.LeagueTeam
 import com.papa.fr.football.domain.model.UserFavoriteTeam
 import com.papa.fr.football.domain.repository.TeamRepository
 import com.papa.fr.football.domain.repository.UserPreferencesRepository
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.launch
 
 class SignInViewModel(
@@ -34,6 +36,7 @@ class SignInViewModel(
     private var pendingTeamIds: MutableSet<Int> = mutableSetOf()
     private var favoriteTeamDetails: MutableMap<Int, FavoriteTeamUiModel> = mutableMapOf()
     private var availableTeamsById: Map<Int, TeamSelectionUiModel> = emptyMap()
+    private var teamCollectionJob: Job? = null
 
     init {
         viewModelScope.launch {
@@ -57,10 +60,8 @@ class SignInViewModel(
 
     fun onLeagueSelected(leagueId: Int) {
         pendingTeamIds = selectedTeamIds.toMutableSet()
-        viewModelScope.launch {
-            loadAvailableTeams(leagueId)
-            _uiState.value = _uiState.value.copy(selectedLeagueId = leagueId)
-        }
+        startObservingTeams(leagueId)
+        _uiState.value = _uiState.value.copy(selectedLeagueId = leagueId)
     }
 
     fun onTeamSelectionChanged(teamId: Int, isSelected: Boolean) {
@@ -114,14 +115,21 @@ class SignInViewModel(
         }
     }
 
-    private suspend fun loadAvailableTeams(leagueId: Int) {
-        val teams = runCatching { teamRepository.getTeamsForLeague(leagueId) }
-            .getOrDefault(emptyList())
-        val availableTeams = teams.map { team ->
-            team.toSelectionUiModel(pendingTeamIds.contains(team.id))
+    private fun startObservingTeams(leagueId: Int) {
+        teamCollectionJob?.cancel()
+        teamCollectionJob = viewModelScope.launch {
+            teamRepository.getTeamsForLeague(leagueId)
+                .catch {
+                    _uiState.value = _uiState.value.copy(availableTeams = emptyList())
+                }
+                .collect { teams ->
+                    val availableTeams = teams.map { team ->
+                        team.toSelectionUiModel(pendingTeamIds.contains(team.id))
+                    }
+                    availableTeamsById = availableTeams.associateBy { it.id }
+                    _uiState.value = _uiState.value.copy(availableTeams = availableTeams)
+                }
         }
-        availableTeamsById = availableTeams.associateBy { it.id }
-        _uiState.value = _uiState.value.copy(availableTeams = availableTeams)
     }
 
     private fun LeagueDescriptor.toUiModel(): LeagueUiModel {

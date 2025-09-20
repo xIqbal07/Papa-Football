@@ -163,6 +163,25 @@ interface MatchDao {
         """
     )
     suspend fun getDistinctTeamsForLeague(leagueId: Int): List<LeagueTeamProjection>
+
+    @Query(
+        """
+            SELECT team_id, team_name,
+                MAX(NULLIF(logo_base64, '')) AS logo_base64
+            FROM (
+                SELECT home_team_id AS team_id, home_team_name AS team_name, home_logo_base64 AS logo_base64
+                FROM matches
+                WHERE league_id = :leagueId
+                UNION ALL
+                SELECT away_team_id AS team_id, away_team_name AS team_name, away_logo_base64 AS logo_base64
+                FROM matches
+                WHERE league_id = :leagueId
+            )
+            GROUP BY team_id, team_name
+            ORDER BY team_name COLLATE NOCASE
+        """
+    )
+    fun observeDistinctTeamsForLeague(leagueId: Int): Flow<List<LeagueTeamProjection>>
 }
 
 data class LeagueTeamProjection(
