@@ -27,4 +27,7 @@
     <string name="favourite_teams">Favourite teams</string>
     <string name="add_team">Add Team</string>
     <string name="profile">Profile</string>
+    <string name="your_profile">Your profile</string>
+    <string name="edit">Edit</string>
+    <string name="save">Save</string>
 </resources>

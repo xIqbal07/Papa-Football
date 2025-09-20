@@ -7,5 +7,5 @@ package com.papa.fr.football.common.schedule
 object ScheduleConfig {
     const val LIVE_SPORT_ID: Int = 1
     const val FUTURE_SEASON_LIMIT: Int = 1
-    const val PAST_SEASON_LIMIT: Int = 10
+    const val PAST_SEASON_LIMIT: Int = 5
 }

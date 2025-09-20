@@ -66,13 +66,12 @@ class ScheduleFragment : Fragment() {
         binding.ddSeason.setPlaceholder(defaultSeasonLabel())
         binding.ddLeague.setPlaceholder(scheduleViewModel.defaultLeagueLabel())
 
-        binding.btnSchedule.setOnClickListener {
-            scheduleViewModel.refreshSchedule()
-        }
-
-        binding.ivProfile.setOnClickListener {
-            navigateToProfile()
-        }
+        binding.header.setOnClickListener(
+            onResetListener = {
+                scheduleViewModel.refreshSchedule()
+            },
+            onProfileListener = { navigateToProfile() }
+        )
 
         if (scheduleViewModel.uiState.value.seasonsByLeague.isEmpty()) {
             scheduleViewModel.loadAllLeagueSeasons()
@@ -81,8 +80,9 @@ class ScheduleFragment : Fragment() {
 
     private fun navigateToProfile() {
         val fragmentManager = parentFragmentManager
-        val profileFragment = fragmentManager.findFragmentByTag(ProfileFragment.TAG) as? ProfileFragment
-            ?: ProfileFragment()
+        val profileFragment =
+            fragmentManager.findFragmentByTag(ProfileFragment.TAG) as? ProfileFragment
+                ?: ProfileFragment()
 
         fragmentManager.commit {
             setReorderingAllowed(true)
@@ -230,7 +230,7 @@ class ScheduleFragment : Fragment() {
             getString(R.string.schedule_last_updated, formattedDate)
         } ?: getString(R.string.schedule_last_updated_placeholder)
 
-        binding.btnSchedule.text = buttonLabel
+        binding.header.setLastUpdated(buttonLabel)
     }
 
     override fun onDestroyView() {

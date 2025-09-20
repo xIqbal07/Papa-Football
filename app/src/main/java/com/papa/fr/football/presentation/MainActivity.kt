@@ -7,6 +7,7 @@ import androidx.annotation.StringRes
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.commit
 import com.google.android.material.bottomnavigation.BottomNavigationView
@@ -98,8 +99,8 @@ class MainActivity : AppCompatActivity() {
         outState.putInt(KEY_SELECTED_ITEM, selectedItemId)
     }
 
-    companion object {
-        private const val KEY_SELECTED_ITEM = "key_selected_item"
+    fun setBottomNavVisible(isVisible: Boolean) {
+        binding.bottomNavigation.isVisible = isVisible
     }
 
     private fun placeholderDestination(
@@ -123,4 +124,8 @@ class MainActivity : AppCompatActivity() {
         val tag: String,
         val fragmentProvider: () -> Fragment,
     )
+
+    companion object {
+        private const val KEY_SELECTED_ITEM = "key_selected_item"
+    }
 }

@@ -21,6 +21,20 @@
         app:layout_constraintGuide_end="16dp" />
 
     <TextView
+        android:id="@+id/tv_back"
+        style="@style/AlexandriaRegular.12sp.white"
+        android:layout_height="0dp"
+        android:layout_marginTop="16dp"
+        android:drawablePadding="8dp"
+        android:gravity="center"
+        android:text="@string/your_profile"
+        android:textAlignment="center"
+        android:textColor="#838990"
+        app:drawableStartCompat="@drawable/ic_back"
+        app:layout_constraintStart_toStartOf="@id/gl_start"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <TextView
         android:id="@+id/tv_title"
         style="@style/AlexandriaBold.18sp.white"
         android:layout_marginTop="58dp"
@@ -36,11 +50,21 @@
         android:layout_height="125dp"
         android:layout_marginTop="32dp"
         android:scaleType="centerCrop"
-        android:src="@drawable/ic_profile_upload"
+        android:src="@drawable/ic_profile"
         app:layout_constraintEnd_toEndOf="@id/gl_end"
         app:layout_constraintStart_toStartOf="@id/gl_start"
         app:layout_constraintTop_toBottomOf="@+id/tv_title"
+        app:layout_goneMarginTop="60dp"
         app:shapeAppearanceOverlay="@style/CircleImageStyle"
+        tools:ignore="contentDescription" />
+
+    <ImageView
+        android:id="@+id/iv_plus"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:src="@drawable/ic_plus"
+        app:layout_constraintBottom_toBottomOf="@id/iv_profile_upload"
+        app:layout_constraintEnd_toEndOf="@id/iv_profile_upload"
         tools:ignore="contentDescription" />
 
     <com.google.android.material.button.MaterialButton
@@ -67,7 +91,7 @@
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_marginTop="4dp"
-        app:layout_constraintBottom_toTopOf="@id/btn_sign_in"
+        app:layout_constraintBottom_toTopOf="@id/btn_edit"
         app:layout_constraintEnd_toEndOf="@id/gl_end"
         app:layout_constraintStart_toStartOf="@id/gl_start"
         app:layout_constraintTop_toBottomOf="@+id/tv_favorite_teams"
@@ -75,11 +99,22 @@
         tools:listitem="@layout/item_team" />
 
     <com.google.android.material.button.MaterialButton
-        android:id="@+id/btn_sign_in"
+        android:id="@+id/btn_edit"
+        style="@style/Button.Primary"
+        android:layout_marginTop="32dp"
+        android:layout_marginBottom="32dp"
+        android:text="@string/edit"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="@id/gl_end"
+        app:layout_constraintStart_toStartOf="@id/gl_start" />
+
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/btn_save"
         style="@style/Button.Secondary"
         android:layout_marginTop="32dp"
         android:layout_marginBottom="32dp"
-        android:text="@string/sign_in"
+        android:text="@string/save"
+        android:visibility="gone"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="@id/gl_end"
         app:layout_constraintStart_toStartOf="@id/gl_start" />
