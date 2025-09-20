@@ -43,14 +43,13 @@ class SeasonApiService(
             RATE_LIMIT_KEY_SEASON_EVENTS,
             RATE_LIMIT_KEY_SEASON_EVENTS,
         ) {
-                httpClient.get {
-                    url { encodedPath = "v1/seasons/events" }
-                    parameter("unique_tournament_id", uniqueTournamentId)
-                    parameter("seasons_id", seasonId)
-                    parameter("page", page)
-                    parameter("course_events", courseEvents)
-                }.body()
-            }
+            httpClient.get {
+                url { encodedPath = "v1/seasons/events" }
+                parameter("unique_tournament_id", uniqueTournamentId)
+                parameter("seasons_id", seasonId)
+                parameter("page", page)
+                parameter("course_events", courseEvents)
+            }.body()
         }
     }
 }

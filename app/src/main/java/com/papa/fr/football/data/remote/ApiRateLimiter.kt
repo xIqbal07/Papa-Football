@@ -49,7 +49,7 @@ class ApiRateLimiter(
 
 data class RateLimitRule(
     val minIntervalMillis: Long,
-    val queueThreshold: Int = 1,
+    val queueThreshold: Int = 10,
 )
 
 /**

@@ -88,8 +88,8 @@ val dataModule = module {
     single(named("seasonApiRateLimiter")) {
         ApiRateLimiter(
             mapOf(
-                SeasonApiService.RATE_LIMIT_KEY_UNIQUE_TOURNAMENT_SEASONS to RateLimitRule(minIntervalMillis = 1_000),
-                SeasonApiService.RATE_LIMIT_KEY_SEASON_EVENTS to RateLimitRule(minIntervalMillis = 1_000),
+                SeasonApiService.RATE_LIMIT_KEY_UNIQUE_TOURNAMENT_SEASONS to RateLimitRule(minIntervalMillis = 100),
+                SeasonApiService.RATE_LIMIT_KEY_SEASON_EVENTS to RateLimitRule(minIntervalMillis = 100),
             ),
         )
     }
