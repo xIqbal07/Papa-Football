@@ -15,6 +15,8 @@ import com.google.android.material.bottomsheet.BottomSheetBehavior
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment
 import com.papa.fr.football.databinding.BottomsheetChooseTeamBinding
 import com.papa.fr.football.presentation.signin.SignInViewModel
+import com.papa.fr.football.presentation.signin.SignInViewState
+import com.papa.fr.football.presentation.signin.TeamSelectionState
 import com.papa.fr.football.presentation.signin.adapter.TeamSelectionAdapter
 import kotlinx.coroutines.launch
 import org.koin.androidx.viewmodel.ext.android.activityViewModel
@@ -76,9 +78,13 @@ class ChooseTeamBottomSheet : BottomSheetDialogFragment() {
         viewLifecycleOwner.lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
                 signInViewModel.uiState.collect { state ->
-                    if (state.selectedLeagueId != leagueId) return@collect
-                    teamAdapter.submitList(state.availableTeams)
-                    val selectedCount = state.availableTeams.count { it.isSelected }
+                    val contentState = state as? SignInViewState.Content ?: return@collect
+                    val selectionState =
+                        contentState.teamSelectionState as? TeamSelectionState.Choosing
+                            ?: return@collect
+                    if (selectionState.selectedLeagueId != leagueId) return@collect
+                    teamAdapter.submitList(selectionState.availableTeams)
+                    val selectedCount = selectionState.availableTeams.count { it.isSelected }
                     binding.btnChooseTeam.isEnabled = selectedCount > 0
                 }
             }

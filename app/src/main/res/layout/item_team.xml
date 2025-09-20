@@ -26,7 +26,7 @@
         tools:text="Royal Vallecano" />
 
     <ImageView
-        android:id="@+id/iv_indicator_active"
+        android:id="@+id/iv_favorite_team"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginStart="12dp"

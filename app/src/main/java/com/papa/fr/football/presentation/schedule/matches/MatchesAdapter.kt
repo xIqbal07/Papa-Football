@@ -59,9 +59,10 @@ class MatchesAdapter : ListAdapter<MatchUiModel, RecyclerView.ViewHolder>(DIFF_C
 
         fun bind(item: MatchUiModel.Future) = with(binding) {
             iltHome.setTitle(item.homeTeamName)
-            iltHome.setIndicatorActive(item.isToday)
+            iltHome.setFavoriteTeamIndicator(item.isHomeTeamFavorite)
             iltHome.setLogoBase64(item.homeLogoBase64)
             iltAway.setTitle(item.awayTeamName)
+            iltAway.setFavoriteTeamIndicator(item.isAwayTeamFavorite)
             iltAway.setLogoBase64(item.awayLogoBase64)
             tvHomeStartTime.text = item.startDateLabel
             tvAwayStartTime.text = item.startTimeLabel
@@ -74,8 +75,10 @@ class MatchesAdapter : ListAdapter<MatchUiModel, RecyclerView.ViewHolder>(DIFF_C
 
         fun bind(item: MatchUiModel.Live) = with(binding) {
             iltHome.setTitle(item.homeTeamName)
+            iltHome.setFavoriteTeamIndicator(item.isHomeTeamFavorite)
             iltHome.setLogoBase64(item.homeLogoBase64)
             iltAway.setTitle(item.awayTeamName)
+            iltAway.setFavoriteTeamIndicator(item.isAwayTeamFavorite)
             iltAway.setLogoBase64(item.awayLogoBase64)
             tvHomeStatus.text = item.statusLabel
             tvScore.text = item.scoreLabel
@@ -88,9 +91,10 @@ class MatchesAdapter : ListAdapter<MatchUiModel, RecyclerView.ViewHolder>(DIFF_C
 
         fun bind(item: MatchUiModel.Past) = with(binding) {
             iltHome.setTitle(item.homeTeamName)
-            iltHome.setIndicatorActive(false)
+            iltHome.setFavoriteTeamIndicator(item.isHomeTeamFavorite)
             iltHome.setLogoBase64(item.homeLogoBase64)
             iltAway.setTitle(item.awayTeamName)
+            iltAway.setFavoriteTeamIndicator(item.isAwayTeamFavorite)
             iltAway.setLogoBase64(item.awayLogoBase64)
             tvStartTime.text = item.startDateLabel
             tvScore.text = item.scoreLabel
@@ -108,53 +112,4 @@ class MatchesAdapter : ListAdapter<MatchUiModel, RecyclerView.ViewHolder>(DIFF_C
             }
         }
     }
-}
-
-sealed class MatchUiModel(open val id: String) {
-    data class Future(
-        override val id: String,
-        val homeTeamId: Int,
-        val homeTeamName: String,
-        val awayTeamId: Int,
-        val awayTeamName: String,
-        val startTimestamp: Long,
-        val startDateLabel: String,
-        val startTimeLabel: String,
-        val isToday: Boolean,
-        val homeLogoBase64: String,
-        val awayLogoBase64: String,
-        val odds: Odds? = null,
-    ) : MatchUiModel(id)
-
-    data class Live(
-        override val id: String,
-        val homeTeamId: Int,
-        val homeTeamName: String,
-        val awayTeamId: Int,
-        val awayTeamName: String,
-        val homeScore: Int,
-        val awayScore: Int,
-        val homeLogoBase64: String,
-        val awayLogoBase64: String,
-        val statusLabel: String,
-    ) : MatchUiModel(id) {
-        val scoreLabel: String
-            get() = "$homeScore:$awayScore"
-    }
-
-    data class Past(
-        override val id: String,
-        val homeTeamName: String,
-        val awayTeamName: String,
-        val startDateLabel: String,
-        val scoreLabel: String,
-        val homeLogoBase64: String,
-        val awayLogoBase64: String,
-    ) : MatchUiModel(id)
-
-    data class Odds(
-        val home: String,
-        val draw: String,
-        val away: String,
-    )
 }
