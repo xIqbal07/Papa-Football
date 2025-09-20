@@ -6,13 +6,13 @@ import androidx.room.TypeConverters
 import com.papa.fr.football.data.local.dao.LiveMatchDao
 import com.papa.fr.football.data.local.dao.MatchDao
 import com.papa.fr.football.data.local.dao.MatchPrefetchDao
-import com.papa.fr.football.data.local.dao.RateLimitedRequestDao
+import com.papa.fr.football.data.local.dao.RequestRetryDao
 import com.papa.fr.football.data.local.dao.SeasonDao
 import com.papa.fr.football.data.local.entity.LiveMatchEntity
 import com.papa.fr.football.data.local.entity.MatchEntity
 import com.papa.fr.football.data.local.entity.MatchRefreshEntity
 import com.papa.fr.football.data.local.entity.MatchPrefetchTaskEntity
-import com.papa.fr.football.data.local.entity.RateLimitedRequestEntity
+import com.papa.fr.football.data.local.entity.RequestRetryEntity
 import com.papa.fr.football.data.local.entity.SeasonEntity
 
 @Database(
@@ -21,10 +21,10 @@ import com.papa.fr.football.data.local.entity.SeasonEntity
         MatchEntity::class,
         LiveMatchEntity::class,
         MatchRefreshEntity::class,
-        RateLimitedRequestEntity::class,
+        RequestRetryEntity::class,
         MatchPrefetchTaskEntity::class,
     ],
-    version = 4,
+    version = 5,
     exportSchema = false,
 )
 @TypeConverters(DatabaseConverters::class)
@@ -32,6 +32,6 @@ abstract class PapaFootballDatabase : RoomDatabase() {
     abstract fun seasonDao(): SeasonDao
     abstract fun matchDao(): MatchDao
     abstract fun liveMatchDao(): LiveMatchDao
-    abstract fun rateLimitedRequestDao(): RateLimitedRequestDao
+    abstract fun requestRetryDao(): RequestRetryDao
     abstract fun matchPrefetchDao(): MatchPrefetchDao
 }

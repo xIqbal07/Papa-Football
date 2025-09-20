@@ -103,7 +103,7 @@ val dataModule = module {
     single { get<PapaFootballDatabase>().seasonDao() }
     single { get<PapaFootballDatabase>().matchDao() }
     single { get<PapaFootballDatabase>().liveMatchDao() }
-    single { get<PapaFootballDatabase>().rateLimitedRequestDao() }
+    single { get<PapaFootballDatabase>().requestRetryDao() }
     single { get<PapaFootballDatabase>().matchPrefetchDao() }
     single { RetryingCallExecutor(get()) }
     single { SeasonApiService(get(), get(named("seasonApiRateLimiter")), get()) }
