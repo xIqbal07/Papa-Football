@@ -17,13 +17,18 @@ import com.papa.fr.football.data.remote.TeamApiService
 import com.papa.fr.football.data.repository.MatchRepositoryImpl
 import com.papa.fr.football.data.repository.SeasonRepositoryImpl
 import com.papa.fr.football.data.repository.TeamLogoProvider
+import com.papa.fr.football.data.repository.TeamRepositoryImpl
+import com.papa.fr.football.data.repository.UserPreferencesRepositoryImpl
 import com.papa.fr.football.domain.repository.MatchRepository
 import com.papa.fr.football.domain.repository.SeasonRepository
+import com.papa.fr.football.domain.repository.TeamRepository
+import com.papa.fr.football.domain.repository.UserPreferencesRepository
 import com.papa.fr.football.domain.usecase.GetLiveMatchesUseCase
 import com.papa.fr.football.domain.usecase.GetRecentMatchesUseCase
 import com.papa.fr.football.domain.usecase.GetSeasonsUseCase
 import com.papa.fr.football.domain.usecase.GetUpcomingMatchesUseCase
 import com.papa.fr.football.presentation.schedule.ScheduleViewModel
+import com.papa.fr.football.presentation.signin.SignInViewModel
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.okhttp.OkHttp
 import io.ktor.client.plugins.DefaultRequest
@@ -105,6 +110,7 @@ val dataModule = module {
     single { get<PapaFootballDatabase>().liveMatchDao() }
     single { get<PapaFootballDatabase>().requestRetryDao() }
     single { get<PapaFootballDatabase>().matchPrefetchDao() }
+    single { get<PapaFootballDatabase>().userPreferencesDao() }
     single { RetryingCallExecutor(get()) }
     single { SeasonApiService(get(), get(named("seasonApiRateLimiter")), get()) }
     single { TeamApiService(get(), get()) }
@@ -112,6 +118,8 @@ val dataModule = module {
     single { TeamLogoProvider(get()) }
     single<SeasonRepository> { SeasonRepositoryImpl(get(), get()) }
     single<MatchRepository> { MatchRepositoryImpl(get(), get(), get(), get(), get()) }
+    single<TeamRepository> { TeamRepositoryImpl(get(), get()) }
+    single<UserPreferencesRepository> { UserPreferencesRepositoryImpl(get()) }
     single {
         MatchPrefetchQueue(
             matchRepository = get(),
@@ -130,4 +138,5 @@ val domainModule = module {
 
 val presentationModule = module {
     viewModel { ScheduleViewModel(get(), get(), get(), get(), get()) }
+    viewModel { SignInViewModel(get(), get(), get()) }
 }
