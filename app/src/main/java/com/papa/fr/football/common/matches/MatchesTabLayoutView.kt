@@ -98,7 +98,7 @@ class MatchesTabLayoutView @JvmOverloads constructor(
                 R.drawable.bg_matches_tab_unselected
             }
             val textColorRes = if (isSelected) {
-                R.color.matches_tab_selected_text
+                R.color.rich_black
             } else {
                 R.color.white
             }

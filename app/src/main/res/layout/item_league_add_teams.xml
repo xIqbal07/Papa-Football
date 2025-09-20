@@ -4,7 +4,7 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:padding="12dp"
-    android:background="@color/matches_tab_group_background">
+    android:background="@color/navy_950">
 
     <com.papa.fr.football.common.itemteam.ItemListTeam
         android:id="@+id/itl_league"

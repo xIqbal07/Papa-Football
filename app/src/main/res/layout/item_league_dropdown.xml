@@ -19,7 +19,7 @@
         android:layout_marginTop="4dp"
         android:textAppearance="@style/AlexandriaBold.14sp.white"
         android:textColorHint="@color/white"
-        app:boxBackgroundColor="@color/electric_lime"
+        app:boxBackgroundColor="@color/teal_800"
         app:boxStrokeColor="@android:color/transparent"
         app:boxStrokeWidth="0dp"
         app:boxStrokeWidthFocused="0dp"
