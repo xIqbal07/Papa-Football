@@ -38,20 +38,34 @@ class DataBootstrapper(
             val futureSeasons = seasons.take(ScheduleConfig.FUTURE_SEASON_LIMIT)
             futureSeasons.forEach { season ->
                 runCatching {
-                    matchRepository.warmUpcomingMatches(league.id, season.id, forceRefresh)
+                    matchRepository.warmUpcomingMatches(
+                        league.id,
+                        season.id,
+                        forceRefresh = forceRefresh,
+                        prefetchLogos = false,
+                    )
                 }
             }
 
             val pastSeasons = seasons.take(ScheduleConfig.PAST_SEASON_LIMIT)
             pastSeasons.forEach { season ->
                 runCatching {
-                    matchRepository.warmRecentMatches(league.id, season.id, forceRefresh)
+                    matchRepository.warmRecentMatches(
+                        league.id,
+                        season.id,
+                        forceRefresh = forceRefresh,
+                        prefetchLogos = false,
+                    )
                 }
             }
         }
 
         runCatching {
-            matchRepository.warmLiveMatches(ScheduleConfig.LIVE_SPORT_ID, forceRefresh)
+            matchRepository.warmLiveMatches(
+                ScheduleConfig.LIVE_SPORT_ID,
+                forceRefresh = forceRefresh,
+                prefetchLogos = false,
+            )
         }
     }
 }

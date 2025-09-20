@@ -46,6 +46,7 @@ private const val API_KEY_VALUE = "633787e55amsh33c9302558d5212p1064cdjsncbcd738
 val networkModule = module {
     single {
         HttpClient(OkHttp) {
+            expectSuccess = true
             engine {
                 addInterceptor(
                     ChuckerInterceptor.Builder(androidContext())

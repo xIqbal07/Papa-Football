@@ -119,12 +119,17 @@ class MatchRepositoryImpl(
         uniqueTournamentId: Int,
         seasonId: Int,
         forceRefresh: Boolean,
+        prefetchLogos: Boolean,
     ) {
         if (!shouldRefreshUpcomingMatches(uniqueTournamentId, seasonId, forceRefresh)) {
             return
         }
 
-        fetchUpcomingMatchesStream(uniqueTournamentId, seasonId).collect { matches ->
+        fetchUpcomingMatchesStream(
+            uniqueTournamentId,
+            seasonId,
+            prefetchLogos = prefetchLogos,
+        ).collect { matches ->
             val entities = matches.map {
                 it.toEntity(uniqueTournamentId, seasonId, MatchTypeEntity.UPCOMING)
             }
@@ -142,12 +147,17 @@ class MatchRepositoryImpl(
         uniqueTournamentId: Int,
         seasonId: Int,
         forceRefresh: Boolean,
+        prefetchLogos: Boolean,
     ) {
         if (!shouldRefreshPastMatches(uniqueTournamentId, seasonId, forceRefresh)) {
             return
         }
 
-        fetchPastMatchesStream(uniqueTournamentId, seasonId).collect { matches ->
+        fetchPastMatchesStream(
+            uniqueTournamentId,
+            seasonId,
+            prefetchLogos = prefetchLogos,
+        ).collect { matches ->
             val entities = matches.map {
                 it.toEntity(uniqueTournamentId, seasonId, MatchTypeEntity.PAST)
             }
@@ -161,12 +171,19 @@ class MatchRepositoryImpl(
         }
     }
 
-    override suspend fun warmLiveMatches(sportId: Int, forceRefresh: Boolean) {
+    override suspend fun warmLiveMatches(
+        sportId: Int,
+        forceRefresh: Boolean,
+        prefetchLogos: Boolean,
+    ) {
         if (!forceRefresh && liveMatchDao.getLiveMatches(sportId).isNotEmpty()) {
             return
         }
 
-        fetchLiveMatchesStream(sportId).collect { matches ->
+        fetchLiveMatchesStream(
+            sportId,
+            prefetchLogos = prefetchLogos,
+        ).collect { matches ->
             liveMatchDao.replaceLiveMatches(sportId, matches.map { it.toEntity(sportId) })
         }
     }
@@ -174,6 +191,7 @@ class MatchRepositoryImpl(
     private fun fetchUpcomingMatchesStream(
         uniqueTournamentId: Int,
         seasonId: Int,
+        prefetchLogos: Boolean,
     ): Flow<List<Match>> = channelFlow {
         val events = seasonApiService
             .getSeasonEvents(uniqueTournamentId, seasonId)
@@ -222,6 +240,10 @@ class MatchRepositoryImpl(
 
         val pendingTeamIds = orderedTeamIds.filterNot { teamId ->
             logosByTeamId.containsKey(teamId)
+        }
+
+        if (!prefetchLogos || pendingTeamIds.isEmpty()) {
+            return@channelFlow
         }
 
         val jobs = pendingTeamIds.map { teamId ->
@@ -274,6 +296,7 @@ class MatchRepositoryImpl(
     private fun fetchPastMatchesStream(
         uniqueTournamentId: Int,
         seasonId: Int,
+        prefetchLogos: Boolean,
     ): Flow<List<Match>> = channelFlow {
         val events = seasonApiService
             .getSeasonEvents(uniqueTournamentId, seasonId, courseEvents = "last")
@@ -324,6 +347,10 @@ class MatchRepositoryImpl(
             logosByTeamId.containsKey(teamId)
         }
 
+        if (!prefetchLogos || pendingTeamIds.isEmpty()) {
+            return@channelFlow
+        }
+
         val jobs = pendingTeamIds.map { teamId ->
             launch {
                 val logo = runCatching { teamLogoProvider.getTeamLogo(teamId) }
@@ -371,7 +398,10 @@ class MatchRepositoryImpl(
         jobs.joinAll()
     }
 
-    private fun fetchLiveMatchesStream(sportId: Int): Flow<List<LiveMatch>> = channelFlow {
+    private fun fetchLiveMatchesStream(
+        sportId: Int,
+        prefetchLogos: Boolean,
+    ): Flow<List<LiveMatch>> = channelFlow {
         val events = liveEventsApiService
             .getLiveSchedule(sportId)
             .data
@@ -421,6 +451,11 @@ class MatchRepositoryImpl(
             orderedTeamIds = orderedTeamIds,
             cachedTeamIds = logosByTeamId.keys.toSet(),
         )
+
+        if (!prefetchLogos || pendingTeamIds.isEmpty()) {
+            return@channelFlow
+        }
+
         val jobs = pendingTeamIds.map { teamId ->
             launch {
                 val logo = runCatching { teamLogoProvider.getTeamLogo(teamId) }.getOrElse { "" }

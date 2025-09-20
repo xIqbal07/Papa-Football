@@ -20,11 +20,17 @@ interface MatchRepository {
         uniqueTournamentId: Int,
         seasonId: Int,
         forceRefresh: Boolean = false,
+        prefetchLogos: Boolean = true,
     )
     suspend fun warmRecentMatches(
         uniqueTournamentId: Int,
         seasonId: Int,
         forceRefresh: Boolean = false,
+        prefetchLogos: Boolean = true,
     )
-    suspend fun warmLiveMatches(sportId: Int, forceRefresh: Boolean = false)
+    suspend fun warmLiveMatches(
+        sportId: Int,
+        forceRefresh: Boolean = false,
+        prefetchLogos: Boolean = true,
+    )
 }
