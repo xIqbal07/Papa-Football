@@ -118,7 +118,7 @@ val dataModule = module {
     single { TeamLogoProvider(get()) }
     single<SeasonRepository> { SeasonRepositoryImpl(get(), get()) }
     single<MatchRepository> { MatchRepositoryImpl(get(), get(), get(), get(), get()) }
-    single<TeamRepository> { TeamRepositoryImpl(get()) }
+    single<TeamRepository> { TeamRepositoryImpl(get(), get()) }
     single<UserPreferencesRepository> { UserPreferencesRepositoryImpl(get()) }
     single {
         MatchPrefetchQueue(
