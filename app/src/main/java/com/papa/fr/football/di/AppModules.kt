@@ -1,7 +1,9 @@
 package com.papa.fr.football.di
 
+import androidx.room.Room
 import com.chuckerteam.chucker.api.ChuckerCollector
 import com.chuckerteam.chucker.api.ChuckerInterceptor
+import com.papa.fr.football.data.local.database.PapaFootballDatabase
 import com.papa.fr.football.data.remote.LiveEventsApiService
 import com.papa.fr.football.data.remote.SeasonApiService
 import com.papa.fr.football.data.remote.TeamApiService
@@ -74,8 +76,18 @@ val dataModule = module {
     single { TeamApiService(get()) }
     single { LiveEventsApiService(get()) }
     single { TeamLogoProvider(get()) }
-    single<SeasonRepository> { SeasonRepositoryImpl(get()) }
-    single<MatchRepository> { MatchRepositoryImpl(get(), get(), get()) }
+    single {
+        Room.databaseBuilder(
+            androidContext(),
+            PapaFootballDatabase::class.java,
+            "papa_football.db",
+        ).fallbackToDestructiveMigration().build()
+    }
+    single { get<PapaFootballDatabase>().seasonDao() }
+    single { get<PapaFootballDatabase>().matchDao() }
+    single { get<PapaFootballDatabase>().liveMatchDao() }
+    single<SeasonRepository> { SeasonRepositoryImpl(get(), get()) }
+    single<MatchRepository> { MatchRepositoryImpl(get(), get(), get(), get(), get()) }
 }
 
 val domainModule = module {
