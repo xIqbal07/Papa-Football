@@ -6,6 +6,7 @@ import androidx.core.view.isVisible
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
+import com.papa.fr.football.common.extensions.setImageBase64
 import com.papa.fr.football.databinding.ItemFavoriteTeamBinding
 import com.papa.fr.football.presentation.signin.TeamSelectionUiModel
 
@@ -30,11 +31,7 @@ class TeamSelectionAdapter(
 
         fun bind(item: TeamSelectionUiModel) {
             binding.tvTeamName.text = item.name
-            if (item.logoRes != null) {
-                binding.ivLogo.setImageResource(item.logoRes)
-            } else {
-                binding.ivLogo.setImageDrawable(null)
-            }
+            binding.ivLogo.setImageBase64(item.logoBase64)
             binding.cbTeam.setOnCheckedChangeListener(null)
             binding.cbTeam.isChecked = item.isSelected
             binding.cbTeam.setOnCheckedChangeListener { _, isChecked ->

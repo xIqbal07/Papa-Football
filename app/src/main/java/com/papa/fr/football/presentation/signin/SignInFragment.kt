@@ -116,8 +116,9 @@ class SignInFragment : Fragment() {
     private fun renderState(state: SignInUiState) = with(binding) {
         leagueAdapter.submitList(state.leagues)
         favoriteTeamsAdapter.submitList(state.favoriteTeams)
-        groupTeamFavorite.isVisible = state.favoriteTeams.isNotEmpty() && !isEditingTeams
-        rvChooseLeague.isVisible = isEditingTeams
+        val hasFavorites = state.favoriteTeams.isNotEmpty()
+        groupTeamFavorite.isVisible = hasFavorites && !isEditingTeams
+        rvChooseLeague.isVisible = isEditingTeams || !hasFavorites
         btnSave.isEnabled = state.favoriteTeams.isNotEmpty()
     }
 

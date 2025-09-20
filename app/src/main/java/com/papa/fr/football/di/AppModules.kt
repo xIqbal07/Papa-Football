@@ -5,12 +5,9 @@ import com.chuckerteam.chucker.api.ChuckerCollector
 import com.chuckerteam.chucker.api.ChuckerInterceptor
 import com.papa.fr.football.common.league.LeagueCatalog
 import com.papa.fr.football.common.league.StaticLeagueCatalog
-import com.papa.fr.football.common.team.StaticTeamCatalog
-import com.papa.fr.football.common.team.TeamCatalog
 import com.papa.fr.football.data.bootstrap.DataBootstrapper
 import com.papa.fr.football.data.bootstrap.MatchPrefetchQueue
 import com.papa.fr.football.data.local.database.PapaFootballDatabase
-import com.papa.fr.football.data.local.preferences.UserPreferencesDataSource
 import com.papa.fr.football.data.remote.ApiRateLimiter
 import com.papa.fr.football.data.remote.LiveEventsApiService
 import com.papa.fr.football.data.remote.RateLimitRule
@@ -20,9 +17,11 @@ import com.papa.fr.football.data.remote.TeamApiService
 import com.papa.fr.football.data.repository.MatchRepositoryImpl
 import com.papa.fr.football.data.repository.SeasonRepositoryImpl
 import com.papa.fr.football.data.repository.TeamLogoProvider
+import com.papa.fr.football.data.repository.TeamRepositoryImpl
 import com.papa.fr.football.data.repository.UserPreferencesRepositoryImpl
 import com.papa.fr.football.domain.repository.MatchRepository
 import com.papa.fr.football.domain.repository.SeasonRepository
+import com.papa.fr.football.domain.repository.TeamRepository
 import com.papa.fr.football.domain.repository.UserPreferencesRepository
 import com.papa.fr.football.domain.usecase.GetLiveMatchesUseCase
 import com.papa.fr.football.domain.usecase.GetRecentMatchesUseCase
@@ -88,7 +87,6 @@ val networkModule = module {
 
 val commonModule = module {
     single<LeagueCatalog> { StaticLeagueCatalog() }
-    single<TeamCatalog> { StaticTeamCatalog() }
 }
 
 val dataModule = module {
@@ -112,6 +110,7 @@ val dataModule = module {
     single { get<PapaFootballDatabase>().liveMatchDao() }
     single { get<PapaFootballDatabase>().requestRetryDao() }
     single { get<PapaFootballDatabase>().matchPrefetchDao() }
+    single { get<PapaFootballDatabase>().userPreferencesDao() }
     single { RetryingCallExecutor(get()) }
     single { SeasonApiService(get(), get(named("seasonApiRateLimiter")), get()) }
     single { TeamApiService(get(), get()) }
@@ -119,7 +118,7 @@ val dataModule = module {
     single { TeamLogoProvider(get()) }
     single<SeasonRepository> { SeasonRepositoryImpl(get(), get()) }
     single<MatchRepository> { MatchRepositoryImpl(get(), get(), get(), get(), get()) }
-    single { UserPreferencesDataSource.create(androidContext()) }
+    single<TeamRepository> { TeamRepositoryImpl(get()) }
     single<UserPreferencesRepository> { UserPreferencesRepositoryImpl(get()) }
     single {
         MatchPrefetchQueue(

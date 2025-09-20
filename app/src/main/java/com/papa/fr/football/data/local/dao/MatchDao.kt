@@ -1,5 +1,6 @@
 package com.papa.fr.football.data.local.dao
 
+import androidx.room.ColumnInfo
 import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
@@ -143,4 +144,32 @@ interface MatchDao {
         updateHomeTeamLogo(teamId, logo)
         updateAwayTeamLogo(teamId, logo)
     }
+
+    @Query(
+        """
+            SELECT team_id, team_name,
+                MAX(NULLIF(logo_base64, '')) AS logo_base64
+            FROM (
+                SELECT home_team_id AS team_id, home_team_name AS team_name, home_logo_base64 AS logo_base64
+                FROM matches
+                WHERE league_id = :leagueId
+                UNION ALL
+                SELECT away_team_id AS team_id, away_team_name AS team_name, away_logo_base64 AS logo_base64
+                FROM matches
+                WHERE league_id = :leagueId
+            )
+            GROUP BY team_id, team_name
+            ORDER BY team_name COLLATE NOCASE
+        """
+    )
+    suspend fun getDistinctTeamsForLeague(leagueId: Int): List<LeagueTeamProjection>
 }
+
+data class LeagueTeamProjection(
+    @ColumnInfo(name = "team_id")
+    val teamId: Int,
+    @ColumnInfo(name = "team_name")
+    val teamName: String,
+    @ColumnInfo(name = "logo_base64")
+    val logoBase64: String?,
+)

@@ -65,7 +65,6 @@ dependencies {
     implementation(libs.ktor.ktor.client.okhttp)
     implementation(libs.androidx.room.runtime)
     implementation(libs.androidx.room.ktx)
-    implementation(libs.androidx.datastore.preferences)
     kapt(libs.androidx.room.compiler)
     debugImplementation(libs.chucker)
     testImplementation(libs.junit)

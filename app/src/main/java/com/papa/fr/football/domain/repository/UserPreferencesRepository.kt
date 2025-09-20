@@ -1,5 +1,6 @@
 package com.papa.fr.football.domain.repository
 
+import com.papa.fr.football.domain.model.UserFavoriteTeam
 import com.papa.fr.football.domain.model.UserPreferences
 import kotlinx.coroutines.flow.Flow
 
@@ -9,6 +10,6 @@ interface UserPreferencesRepository {
     suspend fun updatePreferences(
         isSignedIn: Boolean,
         selectedLeagueId: Int?,
-        favoriteTeamIds: Set<Int>,
+        favoriteTeams: List<UserFavoriteTeam>,
     )
 }
