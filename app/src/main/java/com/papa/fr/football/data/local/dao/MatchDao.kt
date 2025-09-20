@@ -46,6 +46,28 @@ interface MatchDao {
     )
     suspend fun deleteMatches(leagueId: Int, seasonId: Int, type: MatchTypeEntity)
 
+    @Query(
+        """
+            UPDATE matches
+            SET home_logo_base64 = :logo
+            WHERE home_team_id = :teamId AND (
+                home_logo_base64 IS NULL OR home_logo_base64 = '' OR home_logo_base64 != :logo
+            )
+        """
+    )
+    suspend fun updateHomeTeamLogo(teamId: Int, logo: String)
+
+    @Query(
+        """
+            UPDATE matches
+            SET away_logo_base64 = :logo
+            WHERE away_team_id = :teamId AND (
+                away_logo_base64 IS NULL OR away_logo_base64 = '' OR away_logo_base64 != :logo
+            )
+        """
+    )
+    suspend fun updateAwayTeamLogo(teamId: Int, logo: String)
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsertRefreshTimestamp(entity: MatchRefreshEntity)
 
@@ -59,6 +81,24 @@ interface MatchDao {
         """
     )
     suspend fun hasMatches(
+        leagueId: Int,
+        seasonId: Int,
+        type: MatchTypeEntity,
+    ): Boolean
+
+    @Query(
+        """
+            SELECT EXISTS(
+                SELECT 1 FROM matches
+                WHERE league_id = :leagueId AND season_id = :seasonId AND type = :type AND (
+                    home_logo_base64 IS NULL OR home_logo_base64 = '' OR
+                    away_logo_base64 IS NULL OR away_logo_base64 = ''
+                )
+                LIMIT 1
+            )
+        """
+    )
+    suspend fun hasMatchesMissingLogos(
         leagueId: Int,
         seasonId: Int,
         type: MatchTypeEntity,
@@ -96,5 +136,11 @@ interface MatchDao {
                 refreshedAt = refreshedAt,
             )
         )
+    }
+
+    @Transaction
+    suspend fun updateTeamLogos(teamId: Int, logo: String) {
+        updateHomeTeamLogo(teamId, logo)
+        updateAwayTeamLogo(teamId, logo)
     }
 }

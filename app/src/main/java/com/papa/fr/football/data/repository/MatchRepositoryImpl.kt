@@ -255,10 +255,10 @@ class MatchRepositoryImpl(
                     return@launch
                 }
 
-                val snapshot = emissionMutex.withLock {
+                val (shouldPersist, snapshot) = emissionMutex.withLock {
                     val previous = logosByTeamId[teamId]
                     if (previous == logo) {
-                        return@withLock null
+                        return@withLock false to null
                     }
 
                     logosByTeamId[teamId] = logo
@@ -277,16 +277,18 @@ class MatchRepositoryImpl(
                         }
                     }
 
-                    if (!hasChanged) {
-                        null
-                    } else {
+                    true to if (hasChanged) {
                         matches.toList()
+                    } else {
+                        null
                     }
                 }
 
-                if (snapshot != null) {
-                    send(snapshot)
+                if (shouldPersist) {
+                    matchDao.updateTeamLogos(teamId, logo)
                 }
+
+                snapshot?.let { send(it) }
             }
         }
 
@@ -360,10 +362,10 @@ class MatchRepositoryImpl(
                     return@launch
                 }
 
-                val snapshot = emissionMutex.withLock {
+                val (shouldPersist, snapshot) = emissionMutex.withLock {
                     val previous = logosByTeamId[teamId]
                     if (previous == logo) {
-                        return@withLock null
+                        return@withLock false to null
                     }
 
                     logosByTeamId[teamId] = logo
@@ -382,16 +384,18 @@ class MatchRepositoryImpl(
                         }
                     }
 
-                    if (!hasChanged) {
-                        null
-                    } else {
+                    true to if (hasChanged) {
                         matches.toList()
+                    } else {
+                        null
                     }
                 }
 
-                if (snapshot != null) {
-                    send(snapshot)
+                if (shouldPersist) {
+                    matchDao.updateTeamLogos(teamId, logo)
                 }
+
+                snapshot?.let { send(it) }
             }
         }
 
@@ -626,10 +630,16 @@ class MatchRepositoryImpl(
             MatchTypeEntity.UPCOMING,
         )
         if (refreshTimestamp != null) {
+            if (matchDao.hasMatchesMissingLogos(uniqueTournamentId, seasonId, MatchTypeEntity.UPCOMING)) {
+                return true
+            }
             return false
         }
 
         if (matchDao.hasMatches(uniqueTournamentId, seasonId, MatchTypeEntity.UPCOMING)) {
+            if (matchDao.hasMatchesMissingLogos(uniqueTournamentId, seasonId, MatchTypeEntity.UPCOMING)) {
+                return true
+            }
             recordMatchesRefreshed(
                 leagueId = uniqueTournamentId,
                 seasonId = seasonId,
@@ -656,10 +666,16 @@ class MatchRepositoryImpl(
             MatchTypeEntity.PAST,
         )
         if (refreshTimestamp != null) {
+            if (matchDao.hasMatchesMissingLogos(uniqueTournamentId, seasonId, MatchTypeEntity.PAST)) {
+                return true
+            }
             return false
         }
 
         if (matchDao.hasMatches(uniqueTournamentId, seasonId, MatchTypeEntity.PAST)) {
+            if (matchDao.hasMatchesMissingLogos(uniqueTournamentId, seasonId, MatchTypeEntity.PAST)) {
+                return true
+            }
             recordMatchesRefreshed(
                 leagueId = uniqueTournamentId,
                 seasonId = seasonId,
