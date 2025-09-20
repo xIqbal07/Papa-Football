@@ -7,7 +7,9 @@ import com.papa.fr.football.common.league.LeagueCatalog
 import com.papa.fr.football.common.league.StaticLeagueCatalog
 import com.papa.fr.football.data.bootstrap.DataBootstrapper
 import com.papa.fr.football.data.local.database.PapaFootballDatabase
+import com.papa.fr.football.data.remote.ApiRateLimiter
 import com.papa.fr.football.data.remote.LiveEventsApiService
+import com.papa.fr.football.data.remote.RateLimitRule
 import com.papa.fr.football.data.remote.SeasonApiService
 import com.papa.fr.football.data.remote.TeamApiService
 import com.papa.fr.football.data.repository.MatchRepositoryImpl
@@ -32,6 +34,7 @@ import io.ktor.serialization.kotlinx.json.json
 import kotlinx.serialization.json.Json
 import org.koin.android.ext.koin.androidContext
 import org.koin.androidx.viewmodel.dsl.viewModel
+import org.koin.core.qualifier.named
 import org.koin.dsl.module
 
 private const val BASE_HOST = "sofasport.p.rapidapi.com"
@@ -79,7 +82,15 @@ val commonModule = module {
 }
 
 val dataModule = module {
-    single { SeasonApiService(get()) }
+    single(named("seasonApiRateLimiter")) {
+        ApiRateLimiter(
+            mapOf(
+                SeasonApiService.RATE_LIMIT_KEY_UNIQUE_TOURNAMENT_SEASONS to RateLimitRule(minIntervalMillis = 1_000),
+                SeasonApiService.RATE_LIMIT_KEY_SEASON_EVENTS to RateLimitRule(minIntervalMillis = 1_000),
+            ),
+        )
+    }
+    single { SeasonApiService(get(), get(named("seasonApiRateLimiter"))) }
     single { TeamApiService(get()) }
     single { LiveEventsApiService(get()) }
     single { TeamLogoProvider(get()) }
