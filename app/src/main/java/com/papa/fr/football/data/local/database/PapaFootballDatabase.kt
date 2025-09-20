@@ -8,11 +8,12 @@ import com.papa.fr.football.data.local.dao.MatchDao
 import com.papa.fr.football.data.local.dao.SeasonDao
 import com.papa.fr.football.data.local.entity.LiveMatchEntity
 import com.papa.fr.football.data.local.entity.MatchEntity
+import com.papa.fr.football.data.local.entity.MatchRefreshEntity
 import com.papa.fr.football.data.local.entity.SeasonEntity
 
 @Database(
-    entities = [SeasonEntity::class, MatchEntity::class, LiveMatchEntity::class],
-    version = 1,
+    entities = [SeasonEntity::class, MatchEntity::class, LiveMatchEntity::class, MatchRefreshEntity::class],
+    version = 2,
     exportSchema = false,
 )
 @TypeConverters(DatabaseConverters::class)

@@ -5,6 +5,10 @@ import com.papa.fr.football.domain.repository.MatchRepository
 import kotlinx.coroutines.flow.Flow
 
 class GetUpcomingMatchesUseCase(private val matchRepository: MatchRepository) {
-    operator fun invoke(uniqueTournamentId: Int, seasonId: Int): Flow<List<Match>> =
-        matchRepository.getUpcomingMatches(uniqueTournamentId, seasonId)
+    operator fun invoke(
+        uniqueTournamentId: Int,
+        seasonId: Int,
+        forceRefresh: Boolean = false,
+    ): Flow<List<Match>> =
+        matchRepository.getUpcomingMatches(uniqueTournamentId, seasonId, forceRefresh)
 }

@@ -5,7 +5,15 @@ import com.papa.fr.football.domain.model.Match
 import kotlinx.coroutines.flow.Flow
 
 interface MatchRepository {
-    fun getUpcomingMatches(uniqueTournamentId: Int, seasonId: Int): Flow<List<Match>>
-    suspend fun getRecentMatches(uniqueTournamentId: Int, seasonId: Int): List<Match>
+    fun getUpcomingMatches(
+        uniqueTournamentId: Int,
+        seasonId: Int,
+        forceRefresh: Boolean = false,
+    ): Flow<List<Match>>
+    suspend fun getRecentMatches(
+        uniqueTournamentId: Int,
+        seasonId: Int,
+        forceRefresh: Boolean = false,
+    ): List<Match>
     fun getLiveMatches(sportId: Int): Flow<List<LiveMatch>>
 }

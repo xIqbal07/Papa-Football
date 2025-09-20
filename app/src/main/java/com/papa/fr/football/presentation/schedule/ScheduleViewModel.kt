@@ -13,6 +13,7 @@ import com.papa.fr.football.domain.usecase.GetSeasonsUseCase
 import com.papa.fr.football.domain.usecase.GetUpcomingMatchesUseCase
 import com.papa.fr.football.presentation.schedule.matches.MatchUiModel
 import com.papa.fr.football.presentation.schedule.matches.MatchesTabType
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -23,6 +24,8 @@ import kotlinx.coroutines.flow.onCompletion
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
@@ -43,6 +46,9 @@ class ScheduleViewModel(
     val uiState: StateFlow<ScheduleUiState> = _uiState.asStateFlow()
 
     private var liveMatchesJob: Job? = null
+    private var loadSeasonsJob: Job? = null
+    private val upcomingMatchJobs = mutableMapOf<Pair<Int, Int>, Job>()
+    private var forcePastMatchesRefresh = false
 
     private val _leagueItems = MutableStateFlow(
         listOf(
@@ -106,8 +112,9 @@ class ScheduleViewModel(
 
         _uiState.update { it.copy(lastUpdatedAt = refreshInstant) }
 
-        viewModelScope.launch {
-            val loadingData = createSeasonLoadingData(refreshInstant)
+        loadSeasonsJob?.cancel()
+        loadSeasonsJob = viewModelScope.launch {
+            val loadingData = createSeasonLoadingData(refreshInstant, forceRefresh)
             _leagueItems.value.forEach { league ->
                 loadingData.processLeague(league)
             }
@@ -307,6 +314,11 @@ class ScheduleViewModel(
             return
         }
 
+        val shouldForceRefresh = forcePastMatchesRefresh
+        if (shouldForceRefresh) {
+            forcePastMatchesRefresh = false
+        }
+
         _uiState.update { state ->
             if (state.selectedLeagueId == leagueId && state.selectedSeasonId == seasonId) {
                 state.copy(
@@ -319,7 +331,9 @@ class ScheduleViewModel(
         }
 
         viewModelScope.launch {
-            val result = runCatching { getRecentMatchesUseCase(leagueId, seasonId) }
+            val result = runCatching {
+                getRecentMatchesUseCase(leagueId, seasonId, shouldForceRefresh)
+            }
             val matches = result.getOrElse { emptyList() }
             val matchesUi = matches.map { it.toPastUiModel() }
             val errorMessage = result.exceptionOrNull()?.message ?: DEFAULT_MATCHES_ERROR_MESSAGE
@@ -363,12 +377,18 @@ class ScheduleViewModel(
         }
     }
 
-    private fun createSeasonLoadingData(refreshInstant: Instant): SeasonLoadingData {
+    private fun createSeasonLoadingData(
+        refreshInstant: Instant,
+        forceRefresh: Boolean,
+    ): SeasonLoadingData {
         val previousState = _uiState.value
         val desiredLeagueId = pendingUserLeagueId.get() ?: previousState.selectedLeagueId
         val desiredSeasonId = pendingUserSeasonId.get() ?: previousState.selectedSeasonId
 
         loadingPastMatches.clear()
+        upcomingMatchJobs.values.forEach { it.cancel() }
+        upcomingMatchJobs.clear()
+        forcePastMatchesRefresh = forceRefresh
 
         _uiState.update {
             it.copy(
@@ -392,118 +412,153 @@ class ScheduleViewModel(
         return SeasonLoadingData(
             desiredLeagueId = desiredLeagueId,
             desiredSeasonId = desiredSeasonId,
+            forceRefresh = forceRefresh,
         )
     }
 
     private suspend fun SeasonLoadingData.processLeague(league: LeagueItem) {
-        val seasonsResult = runCatching { getSeasonsUseCase(league.id) }
+        val seasonsResult = runCatching { getSeasonsUseCase(league.id, forceRefresh) }
         val seasons = seasonsResult.getOrElse { throwable ->
-            if (encounteredSeasonError.isNullOrBlank()) {
-                encounteredSeasonError = throwable.message ?: DEFAULT_SEASONS_ERROR_MESSAGE
+            guard {
+                if (encounteredSeasonError.isNullOrBlank()) {
+                    encounteredSeasonError = throwable.message ?: DEFAULT_SEASONS_ERROR_MESSAGE
+                }
             }
             emptyList()
         }
 
-        seasonsByLeague[league.id] = seasons
-        matchesByLeagueSeason.getOrPut(league.id) { mutableMapOf() }
-        matchErrorsByLeagueSeason.getOrPut(league.id) { mutableMapOf() }
-        processedLeagueCount += 1
+        guard {
+            seasonsByLeague[league.id] = seasons
+            matchesByLeagueSeason.getOrPut(league.id) { mutableMapOf() }
+            matchErrorsByLeagueSeason.getOrPut(league.id) { mutableMapOf() }
+            processedLeagueCount += 1
+        }
         emitSeasonLoadingProgress(this)
 
         val latestSeason = seasons.firstOrNull() ?: return
         collectUpcomingMatches(this, league.id, latestSeason.id)
     }
 
-    private suspend fun collectUpcomingMatches(
+    private fun collectUpcomingMatches(
         loadingData: SeasonLoadingData,
         leagueId: Int,
         seasonId: Int,
     ) {
-        var hasEmittedMatches = false
-        var encounteredMatchesError: String? = null
+        val key = leagueId to seasonId
+        upcomingMatchJobs.remove(key)?.cancel()
 
-        getUpcomingMatchesUseCase(leagueId, seasonId)
-            .onEach { matches ->
-                hasEmittedMatches = true
-                loadingData.matchesByLeagueSeason
-                    .getOrPut(leagueId) { mutableMapOf() }[seasonId] =
-                    matches.map { it.toFutureUiModel() }
-                loadingData.matchErrorsByLeagueSeason
-                    .getOrPut(leagueId) { mutableMapOf() }[seasonId] = null
-                emitSeasonLoadingProgress(loadingData)
-            }
-            .catch { throwable ->
-                hasEmittedMatches = true
-                encounteredMatchesError = throwable.message ?: DEFAULT_MATCHES_ERROR_MESSAGE
-                loadingData.matchesByLeagueSeason
-                    .getOrPut(leagueId) { mutableMapOf() }[seasonId] = emptyList()
-                loadingData.matchErrorsByLeagueSeason
-                    .getOrPut(leagueId) { mutableMapOf() }[seasonId] = encounteredMatchesError
-                emitSeasonLoadingProgress(loadingData)
-            }
-            .onCompletion {
-                if (!hasEmittedMatches && encounteredMatchesError == null) {
-                    loadingData.matchesByLeagueSeason
-                        .getOrPut(leagueId) { mutableMapOf() }[seasonId] = emptyList()
-                    loadingData.matchErrorsByLeagueSeason
-                        .getOrPut(leagueId) { mutableMapOf() }[seasonId] = null
+        val job = viewModelScope.launch {
+            var hasEmittedMatches = false
+            var encounteredMatchesError: String? = null
+
+            getUpcomingMatchesUseCase(leagueId, seasonId, loadingData.forceRefresh)
+                .onEach { matches ->
+                    hasEmittedMatches = true
+                    loadingData.guard {
+                        matchesByLeagueSeason
+                            .getOrPut(leagueId) { mutableMapOf() }[seasonId] =
+                            matches.map { it.toFutureUiModel() }
+                        matchErrorsByLeagueSeason
+                            .getOrPut(leagueId) { mutableMapOf() }[seasonId] = null
+                    }
                     emitSeasonLoadingProgress(loadingData)
                 }
-            }
-            .collect()
+                .catch { throwable ->
+                    hasEmittedMatches = true
+                    encounteredMatchesError = throwable.message ?: DEFAULT_MATCHES_ERROR_MESSAGE
+                    loadingData.guard {
+                        matchesByLeagueSeason
+                            .getOrPut(leagueId) { mutableMapOf() }[seasonId] = emptyList()
+                        matchErrorsByLeagueSeason
+                            .getOrPut(leagueId) { mutableMapOf() }[seasonId] = encounteredMatchesError
+                    }
+                    emitSeasonLoadingProgress(loadingData)
+                }
+                .onCompletion { cause ->
+                    if (cause is CancellationException) {
+                        return@onCompletion
+                    }
+                    if (!hasEmittedMatches && encounteredMatchesError == null) {
+                        loadingData.guard {
+                            matchesByLeagueSeason
+                                .getOrPut(leagueId) { mutableMapOf() }[seasonId] = emptyList()
+                            matchErrorsByLeagueSeason
+                                .getOrPut(leagueId) { mutableMapOf() }[seasonId] = null
+                        }
+                        emitSeasonLoadingProgress(loadingData)
+                    }
+                }
+                .collect()
+        }
+
+        upcomingMatchJobs[key] = job
     }
 
-    private fun emitSeasonLoadingProgress(loadingData: SeasonLoadingData) {
-        val preferredLeagueId = pendingUserLeagueId.get() ?: loadingData.desiredLeagueId
-        val preferredSeasonId = pendingUserSeasonId.get() ?: loadingData.desiredSeasonId
-        val currentTab = _uiState.value.selectedMatchesTab
-        val (resolvedLeagueId, resolvedSeasonId) = determineSelection(
-            seasonsByLeague = loadingData.seasonsByLeague,
-            preferredLeagueId = preferredLeagueId,
-            preferredSeasonId = preferredSeasonId,
-            tabType = currentTab,
-        )
-        loadingData.desiredLeagueId = resolvedLeagueId
-        loadingData.desiredSeasonId = resolvedSeasonId
-        pendingUserLeagueId.set(resolvedLeagueId)
-        pendingUserSeasonId.set(resolvedSeasonId)
+    private suspend fun emitSeasonLoadingProgress(loadingData: SeasonLoadingData) {
+        val snapshot = loadingData.guard {
+            val preferredLeagueId = pendingUserLeagueId.get() ?: desiredLeagueId
+            val preferredSeasonId = pendingUserSeasonId.get() ?: desiredSeasonId
+            val currentTab = _uiState.value.selectedMatchesTab
+            val (resolvedLeagueId, resolvedSeasonId) = determineSelection(
+                seasonsByLeague = seasonsByLeague,
+                preferredLeagueId = preferredLeagueId,
+                preferredSeasonId = preferredSeasonId,
+                tabType = currentTab,
+            )
+            desiredLeagueId = resolvedLeagueId
+            desiredSeasonId = resolvedSeasonId
+            pendingUserLeagueId.set(resolvedLeagueId)
+            pendingUserSeasonId.set(resolvedSeasonId)
 
-        val selectedMatches = resolvedLeagueId?.let { leagueId ->
-            resolvedSeasonId?.let { seasonId ->
-                loadingData.matchesByLeagueSeason[leagueId]?.get(seasonId).orEmpty()
-            }
-        }.orEmpty()
+            val selectedMatches = resolvedLeagueId?.let { leagueId ->
+                resolvedSeasonId?.let { seasonId ->
+                    matchesByLeagueSeason[leagueId]?.get(seasonId).orEmpty()
+                }
+            }.orEmpty()
 
-        val selectedError = resolvedLeagueId?.let { leagueId ->
-            resolvedSeasonId?.let { seasonId ->
-                loadingData.matchErrorsByLeagueSeason[leagueId]?.get(seasonId)
-            }
-        }?.takeUnless { it.isNullOrBlank() }
+            val selectedError = resolvedLeagueId?.let { leagueId ->
+                resolvedSeasonId?.let { seasonId ->
+                    matchErrorsByLeagueSeason[leagueId]?.get(seasonId)
+                }
+            }?.takeUnless { it.isNullOrBlank() }
 
-        val hasLoadedAllSeasons = loadingData.processedLeagueCount >= _leagueItems.value.size
-        val hasLoadedSelectedMatches =
-            if (resolvedLeagueId == null || resolvedSeasonId == null) {
-                true
-            } else {
-                loadingData.matchesByLeagueSeason[resolvedLeagueId]
-                    ?.containsKey(resolvedSeasonId) == true
-            }
+            val hasLoadedAllSeasons = processedLeagueCount >= _leagueItems.value.size
+            val hasLoadedSelectedMatches =
+                if (resolvedLeagueId == null || resolvedSeasonId == null) {
+                    true
+                } else {
+                    matchesByLeagueSeason[resolvedLeagueId]
+                        ?.containsKey(resolvedSeasonId) == true
+                }
+
+            SeasonProgressSnapshot(
+                resolvedLeagueId = resolvedLeagueId,
+                resolvedSeasonId = resolvedSeasonId,
+                selectedMatches = selectedMatches,
+                selectedError = selectedError,
+                hasLoadedAllSeasons = hasLoadedAllSeasons,
+                hasLoadedSelectedMatches = hasLoadedSelectedMatches,
+                seasonsByLeague = seasonsByLeague.toMap(),
+                matchesByLeagueSeason = matchesByLeagueSeason.mapValues { entry -> entry.value.toMap() },
+                matchErrorsByLeagueSeason =
+                    matchErrorsByLeagueSeason.mapValues { entry -> entry.value.toMap() },
+                encounteredSeasonError = encounteredSeasonError,
+            )
+        }
 
         _uiState.update {
             it.copy(
-                isLoading = !hasLoadedAllSeasons,
-                seasonsByLeague = loadingData.seasonsByLeague.toMap(),
-                errorMessage = loadingData.encounteredSeasonError,
-                selectedLeagueId = resolvedLeagueId,
-                selectedSeasonId = resolvedSeasonId,
-                futureMatches = selectedMatches,
-                isMatchesLoading = !hasLoadedSelectedMatches,
-                matchesErrorMessage = selectedError,
-                matchesByLeagueSeason =
-                    loadingData.matchesByLeagueSeason.mapValues { entry -> entry.value.toMap() },
-                matchErrorsByLeagueSeason =
-                    loadingData.matchErrorsByLeagueSeason.mapValues { entry -> entry.value.toMap() },
-                isDataLoaded = hasLoadedAllSeasons,
+                isLoading = !snapshot.hasLoadedAllSeasons,
+                seasonsByLeague = snapshot.seasonsByLeague,
+                errorMessage = snapshot.encounteredSeasonError,
+                selectedLeagueId = snapshot.resolvedLeagueId,
+                selectedSeasonId = snapshot.resolvedSeasonId,
+                futureMatches = snapshot.selectedMatches,
+                isMatchesLoading = !snapshot.hasLoadedSelectedMatches,
+                matchesErrorMessage = snapshot.selectedError,
+                matchesByLeagueSeason = snapshot.matchesByLeagueSeason,
+                matchErrorsByLeagueSeason = snapshot.matchErrorsByLeagueSeason,
+                isDataLoaded = snapshot.hasLoadedAllSeasons,
             )
         }
     }
@@ -677,16 +732,34 @@ class ScheduleViewModel(
         }
     }
 
-    private data class SeasonLoadingData(
+    private class SeasonLoadingData(
         var desiredLeagueId: Int?,
         var desiredSeasonId: Int?,
-        val seasonsByLeague: MutableMap<Int, List<Season>> = mutableMapOf(),
+        val forceRefresh: Boolean,
+    ) {
+        val seasonsByLeague: MutableMap<Int, List<Season>> = mutableMapOf()
         val matchesByLeagueSeason:
-            MutableMap<Int, MutableMap<Int, List<MatchUiModel.Future>>> = mutableMapOf(),
+            MutableMap<Int, MutableMap<Int, List<MatchUiModel.Future>>> = mutableMapOf()
         val matchErrorsByLeagueSeason:
-            MutableMap<Int, MutableMap<Int, String?>> = mutableMapOf(),
-        var encounteredSeasonError: String? = null,
-        var processedLeagueCount: Int = 0,
+            MutableMap<Int, MutableMap<Int, String?>> = mutableMapOf()
+        var encounteredSeasonError: String? = null
+        var processedLeagueCount: Int = 0
+        private val mutex = Mutex()
+
+        suspend fun <T> guard(block: SeasonLoadingData.() -> T): T = mutex.withLock { block() }
+    }
+
+    private data class SeasonProgressSnapshot(
+        val resolvedLeagueId: Int?,
+        val resolvedSeasonId: Int?,
+        val selectedMatches: List<MatchUiModel.Future>,
+        val selectedError: String?,
+        val hasLoadedAllSeasons: Boolean,
+        val hasLoadedSelectedMatches: Boolean,
+        val seasonsByLeague: Map<Int, List<Season>>,
+        val matchesByLeagueSeason: Map<Int, Map<Int, List<MatchUiModel.Future>>>,
+        val matchErrorsByLeagueSeason: Map<Int, Map<Int, String?>>, 
+        val encounteredSeasonError: String?,
     )
 
     companion object {

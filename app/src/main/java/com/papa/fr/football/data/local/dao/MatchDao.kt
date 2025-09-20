@@ -6,6 +6,7 @@ import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import androidx.room.Transaction
 import com.papa.fr.football.data.local.entity.MatchEntity
+import com.papa.fr.football.data.local.entity.MatchRefreshEntity
 import com.papa.fr.football.data.local.entity.MatchTypeEntity
 import kotlinx.coroutines.flow.Flow
 
@@ -45,16 +46,40 @@ interface MatchDao {
     )
     suspend fun deleteMatches(leagueId: Int, seasonId: Int, type: MatchTypeEntity)
 
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun upsertRefreshTimestamp(entity: MatchRefreshEntity)
+
+    @Query(
+        """
+            SELECT refreshed_at FROM match_refresh
+            WHERE league_id = :leagueId AND season_id = :seasonId AND type = :type
+        """
+    )
+    suspend fun getRefreshTimestamp(
+        leagueId: Int,
+        seasonId: Int,
+        type: MatchTypeEntity,
+    ): Long?
+
     @Transaction
     suspend fun replaceMatches(
         leagueId: Int,
         seasonId: Int,
         type: MatchTypeEntity,
         matches: List<MatchEntity>,
+        refreshedAt: Long,
     ) {
         deleteMatches(leagueId, seasonId, type)
         if (matches.isNotEmpty()) {
             insertMatches(matches)
         }
+        upsertRefreshTimestamp(
+            MatchRefreshEntity(
+                leagueId = leagueId,
+                seasonId = seasonId,
+                type = type,
+                refreshedAt = refreshedAt,
+            )
+        )
     }
 }

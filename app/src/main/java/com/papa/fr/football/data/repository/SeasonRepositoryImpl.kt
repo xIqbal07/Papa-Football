@@ -12,8 +12,15 @@ class SeasonRepositoryImpl(
     private val apiService: SeasonApiService,
     private val seasonDao: SeasonDao,
 ) : SeasonRepository {
-    override suspend fun getUniqueTournamentSeasons(uniqueTournamentId: Int): List<Season> {
+    override suspend fun getUniqueTournamentSeasons(
+        uniqueTournamentId: Int,
+        forceRefresh: Boolean,
+    ): List<Season> {
         val cached = seasonDao.getSeasons(uniqueTournamentId).map { it.toDomain() }
+        if (!forceRefresh && cached.isNotEmpty()) {
+            return cached
+        }
+
         val remoteResult = runCatching {
             apiService
                 .getUniqueTournamentSeasons(uniqueTournamentId)

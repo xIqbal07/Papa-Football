@@ -35,7 +35,11 @@ class MatchRepositoryImpl(
     private val liveLogoStateMutex = Mutex()
     private val liveLogoStateBySport = mutableMapOf<Int, LiveLogoPrefetchState>()
 
-    override fun getUpcomingMatches(uniqueTournamentId: Int, seasonId: Int): Flow<List<Match>> =
+    override fun getUpcomingMatches(
+        uniqueTournamentId: Int,
+        seasonId: Int,
+        forceRefresh: Boolean,
+    ): Flow<List<Match>> =
         channelFlow {
             val localJob = launch {
                 matchDao.observeMatches(uniqueTournamentId, seasonId, MatchTypeEntity.UPCOMING)
@@ -46,11 +50,20 @@ class MatchRepositoryImpl(
 
             launch {
                 try {
+                    if (!shouldRefreshUpcomingMatches(uniqueTournamentId, seasonId, forceRefresh)) {
+                        return@launch
+                    }
                     fetchUpcomingMatchesStream(uniqueTournamentId, seasonId).collect { matches ->
                         val entities = matches.map {
                             it.toEntity(uniqueTournamentId, seasonId, MatchTypeEntity.UPCOMING)
                         }
-                        matchDao.replaceMatches(uniqueTournamentId, seasonId, MatchTypeEntity.UPCOMING, entities)
+                        matchDao.replaceMatches(
+                            uniqueTournamentId,
+                            seasonId,
+                            MatchTypeEntity.UPCOMING,
+                            entities,
+                            System.currentTimeMillis(),
+                        )
                     }
                 } catch (cancellation: CancellationException) {
                     throw cancellation
@@ -62,10 +75,25 @@ class MatchRepositoryImpl(
             awaitClose { localJob.cancel() }
         }
 
-    override suspend fun getRecentMatches(uniqueTournamentId: Int, seasonId: Int): List<Match> {
+    override suspend fun getRecentMatches(
+        uniqueTournamentId: Int,
+        seasonId: Int,
+        forceRefresh: Boolean,
+    ): List<Match> {
         val cached = matchDao
             .getMatches(uniqueTournamentId, seasonId, MatchTypeEntity.PAST)
             .map { it.toDomain() }
+
+        if (!forceRefresh) {
+            val hasRecentRefresh = matchDao.getRefreshTimestamp(
+                uniqueTournamentId,
+                seasonId,
+                MatchTypeEntity.PAST,
+            ) != null
+            if (hasRecentRefresh) {
+                return cached
+            }
+        }
 
         val remoteResult = runCatching {
             fetchMatches(
@@ -80,7 +108,13 @@ class MatchRepositoryImpl(
             val entities = remoteMatches.map {
                 it.toEntity(uniqueTournamentId, seasonId, MatchTypeEntity.PAST)
             }
-            matchDao.replaceMatches(uniqueTournamentId, seasonId, MatchTypeEntity.PAST, entities)
+            matchDao.replaceMatches(
+                uniqueTournamentId,
+                seasonId,
+                MatchTypeEntity.PAST,
+                entities,
+                System.currentTimeMillis(),
+            )
             return remoteMatches
         }
 
@@ -435,6 +469,21 @@ class MatchRepositoryImpl(
             result = 31 * result + value
         }
         return result
+    }
+
+    private suspend fun shouldRefreshUpcomingMatches(
+        uniqueTournamentId: Int,
+        seasonId: Int,
+        forceRefresh: Boolean,
+    ): Boolean {
+        if (forceRefresh) {
+            return true
+        }
+        return matchDao.getRefreshTimestamp(
+            uniqueTournamentId,
+            seasonId,
+            MatchTypeEntity.UPCOMING,
+        ) == null
     }
 
     private data class LiveLogoPrefetchState(
