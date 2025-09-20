@@ -14,6 +14,7 @@ class DataBootstrapper(
     private val seasonRepository: SeasonRepository,
     private val matchRepository: MatchRepository,
     private val leagueCatalog: LeagueCatalog,
+    private val matchPrefetchQueue: MatchPrefetchQueue,
     private val scope: CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.IO),
 ) {
 
@@ -37,25 +38,27 @@ class DataBootstrapper(
 
             val futureSeasons = seasons.take(ScheduleConfig.FUTURE_SEASON_LIMIT)
             futureSeasons.forEach { season ->
-                runCatching {
-                    matchRepository.warmUpcomingMatches(
+                try {
+                    matchPrefetchQueue.enqueueUpcoming(
                         league.id,
                         season.id,
                         forceRefresh = forceRefresh,
-                        prefetchLogos = false,
                     )
+                } catch (_: Throwable) {
+                    // Ignore enqueue failures so other leagues continue scheduling.
                 }
             }
 
             val pastSeasons = seasons.take(ScheduleConfig.PAST_SEASON_LIMIT)
             pastSeasons.forEach { season ->
-                runCatching {
-                    matchRepository.warmRecentMatches(
+                try {
+                    matchPrefetchQueue.enqueuePast(
                         league.id,
                         season.id,
                         forceRefresh = forceRefresh,
-                        prefetchLogos = false,
                     )
+                } catch (_: Throwable) {
+                    // Ignore enqueue failures so other leagues continue scheduling.
                 }
             }
         }

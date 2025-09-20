@@ -6,6 +6,7 @@ import com.chuckerteam.chucker.api.ChuckerInterceptor
 import com.papa.fr.football.common.league.LeagueCatalog
 import com.papa.fr.football.common.league.StaticLeagueCatalog
 import com.papa.fr.football.data.bootstrap.DataBootstrapper
+import com.papa.fr.football.data.bootstrap.MatchPrefetchQueue
 import com.papa.fr.football.data.local.database.PapaFootballDatabase
 import com.papa.fr.football.data.remote.ApiRateLimiter
 import com.papa.fr.football.data.remote.LiveEventsApiService
@@ -103,6 +104,7 @@ val dataModule = module {
     single { get<PapaFootballDatabase>().matchDao() }
     single { get<PapaFootballDatabase>().liveMatchDao() }
     single { get<PapaFootballDatabase>().rateLimitedRequestDao() }
+    single { get<PapaFootballDatabase>().matchPrefetchDao() }
     single { RetryingCallExecutor(get()) }
     single { SeasonApiService(get(), get(named("seasonApiRateLimiter")), get()) }
     single { TeamApiService(get(), get()) }
@@ -110,7 +112,13 @@ val dataModule = module {
     single { TeamLogoProvider(get()) }
     single<SeasonRepository> { SeasonRepositoryImpl(get(), get()) }
     single<MatchRepository> { MatchRepositoryImpl(get(), get(), get(), get(), get()) }
-    single { DataBootstrapper(get(), get(), get()) }
+    single {
+        MatchPrefetchQueue(
+            matchRepository = get(),
+            matchPrefetchDao = get(),
+        ).apply { start() }
+    }
+    single { DataBootstrapper(get(), get(), get(), get()) }
 }
 
 val domainModule = module {
