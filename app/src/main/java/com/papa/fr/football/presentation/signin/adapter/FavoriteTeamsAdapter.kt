@@ -10,13 +10,14 @@ import com.papa.fr.football.common.extensions.setImageBase64
 import com.papa.fr.football.databinding.ItemTeamBinding
 import com.papa.fr.football.presentation.signin.FavoriteTeamUiModel
 
-class FavoriteTeamsAdapter :
-    ListAdapter<FavoriteTeamUiModel, FavoriteTeamsAdapter.FavoriteTeamViewHolder>(DIFF_CALLBACK) {
+class FavoriteTeamsAdapter(
+    private val onRemoveListener: ((Int) -> Unit)
+) : ListAdapter<FavoriteTeamUiModel, FavoriteTeamsAdapter.FavoriteTeamViewHolder>(DIFF_CALLBACK) {
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): FavoriteTeamViewHolder {
         val inflater = LayoutInflater.from(parent.context)
         val binding = ItemTeamBinding.inflate(inflater, parent, false)
-        return FavoriteTeamViewHolder(binding)
+        return FavoriteTeamViewHolder(binding, onRemoveListener)
     }
 
     override fun onBindViewHolder(holder: FavoriteTeamViewHolder, position: Int) {
@@ -25,13 +26,19 @@ class FavoriteTeamsAdapter :
 
     class FavoriteTeamViewHolder(
         private val binding: ItemTeamBinding,
+        private val onRemoveListener: ((Int) -> Unit)
     ) : RecyclerView.ViewHolder(binding.root) {
 
         fun bind(item: FavoriteTeamUiModel) {
             binding.tvTeamName.text = item.name
             binding.ivLogo.setImageBase64(item.logoBase64)
-            binding.ivIndicatorActive.isVisible = true
-            binding.groupEdit.isVisible = false
+            binding.groupEdit.isVisible = true
+            binding.ivIndicatorActive.isVisible = false
+
+            // connect click to onRemoveListener
+            binding.ivEndIcon.setOnClickListener {
+                onRemoveListener(item.id)
+            }
         }
     }
 
@@ -40,16 +47,12 @@ class FavoriteTeamsAdapter :
             override fun areItemsTheSame(
                 oldItem: FavoriteTeamUiModel,
                 newItem: FavoriteTeamUiModel,
-            ): Boolean {
-                return oldItem.id == newItem.id
-            }
+            ): Boolean = oldItem.id == newItem.id
 
             override fun areContentsTheSame(
                 oldItem: FavoriteTeamUiModel,
                 newItem: FavoriteTeamUiModel,
-            ): Boolean {
-                return oldItem == newItem
-            }
+            ): Boolean = oldItem == newItem
         }
     }
 }

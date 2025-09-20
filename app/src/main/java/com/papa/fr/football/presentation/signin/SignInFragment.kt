@@ -1,6 +1,7 @@
 package com.papa.fr.football.presentation.signin
 
 import android.os.Bundle
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -30,7 +31,9 @@ class SignInFragment : Fragment() {
         signInViewModel.onLeagueSelected(league.id)
         onSelectLeague(league.id)
     }
-    private val favoriteTeamsAdapter = FavoriteTeamsAdapter()
+    private val favoriteTeamsAdapter = FavoriteTeamsAdapter {
+
+    }
     private var isEditingTeams: Boolean = false
 
     private fun parentActivity() = (requireActivity() as? MainActivity)
@@ -61,6 +64,7 @@ class SignInFragment : Fragment() {
 
         btnAddTeam.setOnClickListener {
             isEditingTeams = !isEditingTeams
+            binding.btnAddTeam.isVisible = false
             if (isEditingTeams) {
                 rvChooseLeague.isVisible = true
                 groupTeamFavorite.isVisible = false
@@ -96,9 +100,11 @@ class SignInFragment : Fragment() {
         viewLifecycleOwner.lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
                 signInViewModel.events.collect { event ->
+                    Log.d("IQBAL-TEST", "observeEvents: ${event is SignInEvent.TeamsConfirmed}")
                     when (event) {
                         SignInEvent.TeamsConfirmed -> {
                             isEditingTeams = false
+                            binding.btnAddTeam.isVisible = true
                             binding.rvChooseLeague.isVisible = false
                             binding.groupTeamFavorite.isVisible = true
                         }
@@ -116,9 +122,6 @@ class SignInFragment : Fragment() {
     private fun renderState(state: SignInUiState) = with(binding) {
         leagueAdapter.submitList(state.leagues)
         favoriteTeamsAdapter.submitList(state.favoriteTeams)
-        val hasFavorites = state.favoriteTeams.isNotEmpty()
-        groupTeamFavorite.isVisible = hasFavorites && !isEditingTeams
-        rvChooseLeague.isVisible = isEditingTeams || !hasFavorites
         btnSave.isEnabled = state.favoriteTeams.isNotEmpty()
     }
 
