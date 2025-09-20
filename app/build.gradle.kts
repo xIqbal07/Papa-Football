@@ -2,6 +2,7 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.serialization)
+    id("org.jetbrains.kotlin.kapt")
 }
 
 android {
@@ -61,6 +62,9 @@ dependencies {
     implementation(libs.ktor.client.logging)
     implementation(libs.koin.android)
     implementation(libs.ktor.ktor.client.okhttp)
+    implementation(libs.androidx.room.runtime)
+    implementation(libs.androidx.room.ktx)
+    kapt(libs.androidx.room.compiler)
     debugImplementation(libs.chucker)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)

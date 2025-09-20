@@ -1,8 +1,17 @@
 package com.papa.fr.football.di
 
+import androidx.room.Room
 import com.chuckerteam.chucker.api.ChuckerCollector
 import com.chuckerteam.chucker.api.ChuckerInterceptor
+import com.papa.fr.football.common.league.LeagueCatalog
+import com.papa.fr.football.common.league.StaticLeagueCatalog
+import com.papa.fr.football.data.bootstrap.DataBootstrapper
+import com.papa.fr.football.data.bootstrap.MatchPrefetchQueue
+import com.papa.fr.football.data.local.database.PapaFootballDatabase
+import com.papa.fr.football.data.remote.ApiRateLimiter
 import com.papa.fr.football.data.remote.LiveEventsApiService
+import com.papa.fr.football.data.remote.RateLimitRule
+import com.papa.fr.football.data.remote.RetryingCallExecutor
 import com.papa.fr.football.data.remote.SeasonApiService
 import com.papa.fr.football.data.remote.TeamApiService
 import com.papa.fr.football.data.repository.MatchRepositoryImpl
@@ -27,6 +36,7 @@ import io.ktor.serialization.kotlinx.json.json
 import kotlinx.serialization.json.Json
 import org.koin.android.ext.koin.androidContext
 import org.koin.androidx.viewmodel.dsl.viewModel
+import org.koin.core.qualifier.named
 import org.koin.dsl.module
 
 private const val BASE_HOST = "sofasport.p.rapidapi.com"
@@ -37,6 +47,7 @@ private const val API_KEY_VALUE = "633787e55amsh33c9302558d5212p1064cdjsncbcd738
 val networkModule = module {
     single {
         HttpClient(OkHttp) {
+            expectSuccess = true
             engine {
                 addInterceptor(
                     ChuckerInterceptor.Builder(androidContext())
@@ -69,13 +80,45 @@ val networkModule = module {
     }
 }
 
+val commonModule = module {
+    single<LeagueCatalog> { StaticLeagueCatalog() }
+}
+
 val dataModule = module {
-    single { SeasonApiService(get()) }
-    single { TeamApiService(get()) }
-    single { LiveEventsApiService(get()) }
+    single(named("seasonApiRateLimiter")) {
+        ApiRateLimiter(
+            mapOf(
+                SeasonApiService.RATE_LIMIT_KEY_UNIQUE_TOURNAMENT_SEASONS to RateLimitRule(minIntervalMillis = 1_000),
+                SeasonApiService.RATE_LIMIT_KEY_SEASON_EVENTS to RateLimitRule(minIntervalMillis = 1_000),
+            ),
+        )
+    }
+    single {
+        Room.databaseBuilder(
+            androidContext(),
+            PapaFootballDatabase::class.java,
+            "papa_football.db",
+        ).fallbackToDestructiveMigration().build()
+    }
+    single { get<PapaFootballDatabase>().seasonDao() }
+    single { get<PapaFootballDatabase>().matchDao() }
+    single { get<PapaFootballDatabase>().liveMatchDao() }
+    single { get<PapaFootballDatabase>().requestRetryDao() }
+    single { get<PapaFootballDatabase>().matchPrefetchDao() }
+    single { RetryingCallExecutor(get()) }
+    single { SeasonApiService(get(), get(named("seasonApiRateLimiter")), get()) }
+    single { TeamApiService(get(), get()) }
+    single { LiveEventsApiService(get(), get()) }
     single { TeamLogoProvider(get()) }
-    single<SeasonRepository> { SeasonRepositoryImpl(get()) }
-    single<MatchRepository> { MatchRepositoryImpl(get(), get(), get()) }
+    single<SeasonRepository> { SeasonRepositoryImpl(get(), get()) }
+    single<MatchRepository> { MatchRepositoryImpl(get(), get(), get(), get(), get()) }
+    single {
+        MatchPrefetchQueue(
+            matchRepository = get(),
+            matchPrefetchDao = get(),
+        ).apply { start() }
+    }
+    single { DataBootstrapper(get(), get(), get(), get()) }
 }
 
 val domainModule = module {
@@ -86,5 +129,5 @@ val domainModule = module {
 }
 
 val presentationModule = module {
-    viewModel { ScheduleViewModel(get(), get(), get(), get()) }
+    viewModel { ScheduleViewModel(get(), get(), get(), get(), get()) }
 }

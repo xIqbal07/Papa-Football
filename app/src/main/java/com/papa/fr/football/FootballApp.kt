@@ -1,6 +1,8 @@
 package com.papa.fr.football
 
 import android.app.Application
+import com.papa.fr.football.data.bootstrap.DataBootstrapper
+import com.papa.fr.football.di.commonModule
 import com.papa.fr.football.di.dataModule
 import com.papa.fr.football.di.domainModule
 import com.papa.fr.football.di.networkModule
@@ -14,10 +16,12 @@ class FootballApp : Application() {
     override fun onCreate() {
         super.onCreate()
 
-        startKoin {
+        val koinApplication = startKoin {
             androidLogger(if (BuildConfig.DEBUG) Level.ERROR else Level.NONE)
             androidContext(this@FootballApp)
-            modules(listOf(networkModule, dataModule, domainModule, presentationModule))
+            modules(listOf(commonModule, networkModule, dataModule, domainModule, presentationModule))
         }
+
+        koinApplication.koin.get<DataBootstrapper>().prefetchAllData()
     }
 }
