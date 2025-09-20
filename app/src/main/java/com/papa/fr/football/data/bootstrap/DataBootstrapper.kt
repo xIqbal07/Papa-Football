@@ -8,6 +8,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
+import kotlin.collections.ArrayDeque
 import java.util.concurrent.atomic.AtomicBoolean
 
 class DataBootstrapper(
@@ -31,6 +32,9 @@ class DataBootstrapper(
     }
 
     private suspend fun warmCaches(forceRefresh: Boolean) {
+        val futureSeasonQueues = mutableListOf<LeagueSeasonQueue>()
+        val pastSeasonQueues = mutableListOf<LeagueSeasonQueue>()
+
         leagueCatalog.leagues.forEach { league ->
             val seasons = runCatching {
                 seasonRepository.getUniqueTournamentSeasons(league.id, forceRefresh)
@@ -65,30 +69,36 @@ class DataBootstrapper(
             }
 
             val futureSeasons = remainingSeasons.take(ScheduleConfig.FUTURE_SEASON_LIMIT)
-            futureSeasons.forEach { season ->
-                try {
-                    matchPrefetchQueue.enqueueUpcoming(
-                        league.id,
-                        season.id,
-                        forceRefresh = forceRefresh,
-                    )
-                } catch (_: Throwable) {
-                    // Ignore enqueue failures so other leagues continue scheduling.
-                }
+            if (futureSeasons.isNotEmpty()) {
+                futureSeasonQueues += LeagueSeasonQueue(
+                    leagueId = league.id,
+                    seasonIds = ArrayDeque(futureSeasons.map { it.id }),
+                )
             }
 
             val pastSeasons = remainingSeasons.take(ScheduleConfig.PAST_SEASON_LIMIT)
-            pastSeasons.forEach { season ->
-                try {
-                    matchPrefetchQueue.enqueuePast(
-                        league.id,
-                        season.id,
-                        forceRefresh = forceRefresh,
-                    )
-                } catch (_: Throwable) {
-                    // Ignore enqueue failures so other leagues continue scheduling.
-                }
+            if (pastSeasons.isNotEmpty()) {
+                pastSeasonQueues += LeagueSeasonQueue(
+                    leagueId = league.id,
+                    seasonIds = ArrayDeque(pastSeasons.map { it.id }),
+                )
             }
+        }
+
+        enqueueRoundRobin(futureSeasonQueues) { leagueId, seasonId ->
+            matchPrefetchQueue.enqueueUpcoming(
+                leagueId = leagueId,
+                seasonId = seasonId,
+                forceRefresh = forceRefresh,
+            )
+        }
+
+        enqueueRoundRobin(pastSeasonQueues) { leagueId, seasonId ->
+            matchPrefetchQueue.enqueuePast(
+                leagueId = leagueId,
+                seasonId = seasonId,
+                forceRefresh = forceRefresh,
+            )
         }
 
         runCatching {
@@ -99,4 +109,36 @@ class DataBootstrapper(
             )
         }
     }
+
+    private suspend fun enqueueRoundRobin(
+        queues: List<LeagueSeasonQueue>,
+        enqueue: suspend (leagueId: Int, seasonId: Int) -> Unit,
+    ) {
+        if (queues.isEmpty()) {
+            return
+        }
+
+        var didSchedule: Boolean
+        do {
+            didSchedule = false
+            queues.forEach { queue ->
+                val seasonId = queue.seasonIds.removeFirstOrNull() ?: return@forEach
+
+                try {
+                    enqueue(queue.leagueId, seasonId)
+                } catch (_: Throwable) {
+                    // Ignore enqueue failures so other leagues continue scheduling.
+                }
+
+                didSchedule = true
+            }
+        } while (didSchedule)
+    }
+
+    private data class LeagueSeasonQueue(
+        val leagueId: Int,
+        val seasonIds: ArrayDeque<Int>,
+    )
+
+    private fun <T> ArrayDeque<T>.removeFirstOrNull(): T? = if (isEmpty()) null else removeFirst()
 }
