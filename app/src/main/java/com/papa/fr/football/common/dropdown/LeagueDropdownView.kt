@@ -38,7 +38,7 @@ class LeagueDropdownView @JvmOverloads constructor(
 
         binding.actv.setAdapter(adapter)
         binding.actv.setDropDownBackgroundDrawable(
-            ContextCompat.getColor(context, R.color.matches_card_background).toDrawable()
+            ContextCompat.getColor(context, R.color.navy_900).toDrawable()
         )
         binding.actv.setOnItemClickListener { _, _, position, _ ->
             val value = adapter.getItem(position) ?: return@setOnItemClickListener

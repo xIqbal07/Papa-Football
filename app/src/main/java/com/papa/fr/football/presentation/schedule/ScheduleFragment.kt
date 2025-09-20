@@ -5,6 +5,7 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import androidx.fragment.app.Fragment
+import androidx.fragment.app.commit
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
@@ -13,6 +14,7 @@ import com.papa.fr.football.R
 import com.papa.fr.football.common.dropdown.LeagueItem
 import com.papa.fr.football.common.matches.MatchesTabLayoutView
 import com.papa.fr.football.databinding.FragmentScheduleBinding
+import com.papa.fr.football.presentation.profile.ProfileFragment
 import com.papa.fr.football.presentation.schedule.matches.MatchesListFragment
 import com.papa.fr.football.presentation.schedule.matches.MatchesTabType
 import kotlinx.coroutines.launch
@@ -68,8 +70,24 @@ class ScheduleFragment : Fragment() {
             scheduleViewModel.refreshSchedule()
         }
 
+        binding.ivProfile.setOnClickListener {
+            navigateToProfile()
+        }
+
         if (scheduleViewModel.uiState.value.seasonsByLeague.isEmpty()) {
             scheduleViewModel.loadAllLeagueSeasons()
+        }
+    }
+
+    private fun navigateToProfile() {
+        val fragmentManager = parentFragmentManager
+        val profileFragment = fragmentManager.findFragmentByTag(ProfileFragment.TAG) as? ProfileFragment
+            ?: ProfileFragment()
+
+        fragmentManager.commit {
+            setReorderingAllowed(true)
+            replace(R.id.fragment_container, profileFragment, ProfileFragment.TAG)
+            addToBackStack(ProfileFragment.TAG)
         }
     }
 

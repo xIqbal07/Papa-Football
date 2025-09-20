@@ -2,18 +2,18 @@
 <resources>
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
-    <color name="electric_lime">#066A73</color>
-    <color name="matches_tab_group_background">#111C2C</color>
+    <color name="teal_800">#066A73</color>
+    <color name="navy_950">#111C2C</color>
     <color name="cyan">#7AF8F4</color>
-    <color name="season_dropdown_indicator">#8A55FF</color>
-    <color name="matches_tab_selected_text">#050F1D</color>
-    <color name="matches_tab_unselected_text">#B1C1D1</color>
-    <color name="matches_card_background">#122034</color>
-    <color name="matches_card_border">#1F3554</color>
-    <color name="matches_live_chip_background">#FF5656</color>
-    <color name="matches_future_chip_background">#2E8BFF</color>
-    <color name="matches_secondary_text">#A5B6CB</color>
-    <color name="matches_score_text">#F5F8FF</color>
-    <color name="matches_divider">#22324A</color>
+    <color name="violet_400">#8A55FF</color>
+    <color name="rich_black">#050F1D</color>
+    <color name="slate_blue_200">#B1C1D1</color>
+    <color name="navy_900">#122034</color>
+    <color name="slate_blue_700">#1F3554</color>
+    <color name="coral_400">#FF5656</color>
+    <color name="azure_500">#2E8BFF</color>
+    <color name="slate_blue_100">#A5B6CB</color>
+    <color name="ice_white">#F5F8FF</color>
+    <color name="indigo_900">#22324A</color>
     <color name="dark_blue">#0C2946</color>
 </resources>
