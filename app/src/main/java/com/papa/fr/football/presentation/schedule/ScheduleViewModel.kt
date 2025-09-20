@@ -48,7 +48,7 @@ class ScheduleViewModel(
     private var liveMatchesJob: Job? = null
     private var loadSeasonsJob: Job? = null
     private val upcomingMatchJobs = mutableMapOf<Pair<Int, Int>, Job>()
-    private var forcePastMatchesRefresh = false
+    private val pastPrefetchJobs = mutableMapOf<Pair<Int, Int>, Job>()
 
     private val _leagueItems = MutableStateFlow(
         listOf(
@@ -303,24 +303,77 @@ class ScheduleViewModel(
         }
     }
 
-    private fun loadPastMatchesIfNeeded(leagueId: Int?, seasonId: Int?) {
-        if (leagueId == null || seasonId == null) {
-            return
-        }
-        if (_uiState.value.pastMatchesByLeagueSeason[leagueId]?.containsKey(seasonId) == true) {
-            return
-        }
-        if (!loadingPastMatches.add(leagueId to seasonId)) {
+    private fun loadPastMatchesIfNeeded(
+        leagueId: Int?,
+        seasonId: Int?,
+        forceRefresh: Boolean = false,
+    ) {
+        startPastMatchesLoad(
+            leagueId = leagueId,
+            seasonId = seasonId,
+            forceRefresh = forceRefresh,
+            isBackground = false,
+        )
+    }
+
+    private fun prefetchPastMatches(
+        leagueId: Int,
+        seasonId: Int,
+        forceRefresh: Boolean,
+    ) {
+        startPastMatchesLoad(
+            leagueId = leagueId,
+            seasonId = seasonId,
+            forceRefresh = forceRefresh,
+            isBackground = true,
+        )
+    }
+
+    private fun startPastMatchesLoad(
+        leagueId: Int?,
+        seasonId: Int?,
+        forceRefresh: Boolean,
+        isBackground: Boolean,
+    ) {
+        val resolvedLeagueId = leagueId ?: return
+        val resolvedSeasonId = seasonId ?: return
+        val key = resolvedLeagueId to resolvedSeasonId
+
+        if (!forceRefresh &&
+            _uiState.value.pastMatchesByLeagueSeason[resolvedLeagueId]
+                ?.containsKey(resolvedSeasonId) == true
+        ) {
             return
         }
 
-        val shouldForceRefresh = forcePastMatchesRefresh
-        if (shouldForceRefresh) {
-            forcePastMatchesRefresh = false
+        if (isBackground) {
+            if (loadingPastMatches.contains(key)) {
+                return
+            }
+            pastPrefetchJobs[key]?.let { existing ->
+                if (existing.isActive) {
+                    if (!forceRefresh) {
+                        return
+                    }
+                    existing.cancel()
+                } else {
+                    pastPrefetchJobs.remove(key)
+                }
+            }
+        } else {
+            pastPrefetchJobs.remove(key)?.cancel()
+            if (!loadingPastMatches.add(key)) {
+                return
+            }
         }
 
         _uiState.update { state ->
-            if (state.selectedLeagueId == leagueId && state.selectedSeasonId == seasonId) {
+            val shouldShowLoading =
+                state.selectedMatchesTab == MatchesTabType.Past &&
+                    state.selectedLeagueId == resolvedLeagueId &&
+                    state.selectedSeasonId == resolvedSeasonId
+
+            if (shouldShowLoading) {
                 state.copy(
                     isPastMatchesLoading = true,
                     pastMatchesErrorMessage = null,
@@ -330,33 +383,34 @@ class ScheduleViewModel(
             }
         }
 
-        viewModelScope.launch {
+        val job = viewModelScope.launch {
             val result = runCatching {
-                getRecentMatchesUseCase(leagueId, seasonId, shouldForceRefresh)
+                getRecentMatchesUseCase(resolvedLeagueId, resolvedSeasonId, forceRefresh)
             }
             val matches = result.getOrElse { emptyList() }
             val matchesUi = matches.map { it.toPastUiModel() }
             val errorMessage = result.exceptionOrNull()?.message ?: DEFAULT_MATCHES_ERROR_MESSAGE
-            loadingPastMatches.remove(leagueId to seasonId)
 
             _uiState.update { state ->
                 val updatedPastMatchesByLeague = state.pastMatchesByLeagueSeason
                     .toMutableMap()
                     .apply {
-                        val leagueMap = getOrPut(leagueId) { emptyMap() }.toMutableMap()
-                        leagueMap[seasonId] = matchesUi
-                        put(leagueId, leagueMap)
+                        val leagueMap = getOrPut(resolvedLeagueId) { emptyMap() }.toMutableMap()
+                        leagueMap[resolvedSeasonId] = matchesUi
+                        put(resolvedLeagueId, leagueMap)
                     }
                 val updatedErrorsByLeague = state.pastMatchErrorsByLeagueSeason
                     .toMutableMap()
                     .apply {
-                        val leagueErrors = getOrPut(leagueId) { emptyMap() }.toMutableMap()
-                        leagueErrors[seasonId] = if (result.isSuccess) null else errorMessage
-                        put(leagueId, leagueErrors)
+                        val leagueErrors = getOrPut(resolvedLeagueId) { emptyMap() }.toMutableMap()
+                        leagueErrors[resolvedSeasonId] =
+                            if (result.isSuccess) null else errorMessage
+                        put(resolvedLeagueId, leagueErrors)
                     }
 
                 val isCurrentSelection =
-                    state.selectedLeagueId == leagueId && state.selectedSeasonId == seasonId
+                    state.selectedLeagueId == resolvedLeagueId &&
+                        state.selectedSeasonId == resolvedSeasonId
 
                 state.copy(
                     pastMatchesByLeagueSeason = updatedPastMatchesByLeague,
@@ -375,6 +429,17 @@ class ScheduleViewModel(
                 )
             }
         }
+
+        if (isBackground) {
+            pastPrefetchJobs[key] = job
+            job.invokeOnCompletion {
+                pastPrefetchJobs.remove(key)
+            }
+        } else {
+            job.invokeOnCompletion {
+                loadingPastMatches.remove(key)
+            }
+        }
     }
 
     private fun createSeasonLoadingData(
@@ -388,7 +453,8 @@ class ScheduleViewModel(
         loadingPastMatches.clear()
         upcomingMatchJobs.values.forEach { it.cancel() }
         upcomingMatchJobs.clear()
-        forcePastMatchesRefresh = forceRefresh
+        pastPrefetchJobs.values.forEach { it.cancel() }
+        pastPrefetchJobs.clear()
 
         _uiState.update {
             it.copy(
@@ -435,8 +501,19 @@ class ScheduleViewModel(
         }
         emitSeasonLoadingProgress(this)
 
-        val latestSeason = seasons.firstOrNull() ?: return
-        collectUpcomingMatches(this, league.id, latestSeason.id)
+        val futureSeasons = filterSeasonsForTab(seasons, MatchesTabType.Future)
+        futureSeasons.forEach { season ->
+            collectUpcomingMatches(this, league.id, season.id)
+        }
+
+        val pastSeasons = filterSeasonsForTab(seasons, MatchesTabType.Past)
+        pastSeasons.forEach { season ->
+            prefetchPastMatches(
+                leagueId = league.id,
+                seasonId = season.id,
+                forceRefresh = forceRefresh,
+            )
+        }
     }
 
     private fun collectUpcomingMatches(
