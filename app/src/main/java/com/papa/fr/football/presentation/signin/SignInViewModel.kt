@@ -104,7 +104,7 @@ class SignInViewModel(
         val state = _uiState.value
         val favorites = favoriteTeamDetails.values
             .sortedBy { it.name }
-            .map(FavoriteTeamUiModel::toDomain)
+            .map { it.toDomain() }
         viewModelScope.launch {
             userPreferencesRepository.updatePreferences(
                 isSignedIn = true,
