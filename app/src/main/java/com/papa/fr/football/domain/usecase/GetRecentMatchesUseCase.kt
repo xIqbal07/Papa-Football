@@ -2,13 +2,13 @@ package com.papa.fr.football.domain.usecase
 
 import com.papa.fr.football.domain.model.Match
 import com.papa.fr.football.domain.repository.MatchRepository
+import kotlinx.coroutines.flow.Flow
 
 class GetRecentMatchesUseCase(private val matchRepository: MatchRepository) {
-    suspend operator fun invoke(
+    operator fun invoke(
         uniqueTournamentId: Int,
         seasonId: Int,
         forceRefresh: Boolean = false,
-    ): List<Match> {
-        return matchRepository.getRecentMatches(uniqueTournamentId, seasonId, forceRefresh)
-    }
+    ): Flow<List<Match>> =
+        matchRepository.getRecentMatches(uniqueTournamentId, seasonId, forceRefresh)
 }

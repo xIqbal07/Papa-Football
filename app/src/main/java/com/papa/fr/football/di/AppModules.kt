@@ -3,6 +3,9 @@ package com.papa.fr.football.di
 import androidx.room.Room
 import com.chuckerteam.chucker.api.ChuckerCollector
 import com.chuckerteam.chucker.api.ChuckerInterceptor
+import com.papa.fr.football.common.league.LeagueCatalog
+import com.papa.fr.football.common.league.StaticLeagueCatalog
+import com.papa.fr.football.data.bootstrap.DataBootstrapper
 import com.papa.fr.football.data.local.database.PapaFootballDatabase
 import com.papa.fr.football.data.remote.LiveEventsApiService
 import com.papa.fr.football.data.remote.SeasonApiService
@@ -71,6 +74,10 @@ val networkModule = module {
     }
 }
 
+val commonModule = module {
+    single<LeagueCatalog> { StaticLeagueCatalog() }
+}
+
 val dataModule = module {
     single { SeasonApiService(get()) }
     single { TeamApiService(get()) }
@@ -88,6 +95,7 @@ val dataModule = module {
     single { get<PapaFootballDatabase>().liveMatchDao() }
     single<SeasonRepository> { SeasonRepositoryImpl(get(), get()) }
     single<MatchRepository> { MatchRepositoryImpl(get(), get(), get(), get(), get()) }
+    single { DataBootstrapper(get(), get(), get()) }
 }
 
 val domainModule = module {
@@ -98,5 +106,5 @@ val domainModule = module {
 }
 
 val presentationModule = module {
-    viewModel { ScheduleViewModel(get(), get(), get(), get()) }
+    viewModel { ScheduleViewModel(get(), get(), get(), get(), get()) }
 }

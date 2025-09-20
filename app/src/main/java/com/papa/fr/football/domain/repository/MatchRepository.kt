@@ -10,10 +10,21 @@ interface MatchRepository {
         seasonId: Int,
         forceRefresh: Boolean = false,
     ): Flow<List<Match>>
-    suspend fun getRecentMatches(
+    fun getRecentMatches(
         uniqueTournamentId: Int,
         seasonId: Int,
         forceRefresh: Boolean = false,
-    ): List<Match>
+    ): Flow<List<Match>>
     fun getLiveMatches(sportId: Int): Flow<List<LiveMatch>>
+    suspend fun warmUpcomingMatches(
+        uniqueTournamentId: Int,
+        seasonId: Int,
+        forceRefresh: Boolean = false,
+    )
+    suspend fun warmRecentMatches(
+        uniqueTournamentId: Int,
+        seasonId: Int,
+        forceRefresh: Boolean = false,
+    )
+    suspend fun warmLiveMatches(sportId: Int, forceRefresh: Boolean = false)
 }
