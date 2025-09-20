@@ -10,9 +10,24 @@ import kotlinx.coroutines.sync.withLock
  */
 abstract class RateLimitedApiService(
     private val apiRateLimiter: ApiRateLimiter,
+    private val retryingCallExecutor: RetryingCallExecutor,
 ) {
     protected suspend fun <T> executeRateLimited(key: String, block: suspend () -> T): T {
         return apiRateLimiter.run(key, block)
+    }
+
+    protected suspend fun <T> executeRateLimitedWithRetry(
+        limitKey: String,
+        retryKey: String,
+        block: suspend () -> T,
+    ): T {
+        return executeRateLimited(limitKey) {
+            retryingCallExecutor.execute(retryKey, block)
+        }
+    }
+
+    protected suspend fun <T> executeWithRetry(key: String, block: suspend () -> T): T {
+        return retryingCallExecutor.execute(key, block)
     }
 }
 

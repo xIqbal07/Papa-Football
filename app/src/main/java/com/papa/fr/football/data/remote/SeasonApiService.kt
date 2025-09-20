@@ -11,7 +11,8 @@ import io.ktor.http.encodedPath
 class SeasonApiService(
     private val httpClient: HttpClient,
     rateLimiter: ApiRateLimiter,
-) : RateLimitedApiService(rateLimiter) {
+    retryingCallExecutor: RetryingCallExecutor,
+) : RateLimitedApiService(rateLimiter, retryingCallExecutor) {
 
     companion object {
         const val RATE_LIMIT_KEY_UNIQUE_TOURNAMENT_SEASONS = "uniqueTournamentSeasons"
@@ -19,15 +20,16 @@ class SeasonApiService(
     }
 
     suspend fun getUniqueTournamentSeasons(uniqueTournamentId: Int): UniqueTournamentSeasonsResponseDto {
-        return executeRateLimited(RATE_LIMIT_KEY_UNIQUE_TOURNAMENT_SEASONS) {
-            executeWithRetry {
-                httpClient.get {
-                    url {
-                        encodedPath = "v1/unique-tournaments/seasons"
-                    }
-                    parameter("unique_tournament_id", uniqueTournamentId)
-                }.body()
-            }
+        return executeRateLimitedWithRetry(
+            RATE_LIMIT_KEY_UNIQUE_TOURNAMENT_SEASONS,
+            RATE_LIMIT_KEY_UNIQUE_TOURNAMENT_SEASONS,
+        ) {
+            httpClient.get {
+                url {
+                    encodedPath = "v1/unique-tournaments/seasons"
+                }
+                parameter("unique_tournament_id", uniqueTournamentId)
+            }.body()
         }
     }
 
@@ -37,8 +39,10 @@ class SeasonApiService(
         page: Int = 1,
         courseEvents: String = "next",
     ): SeasonEventsResponseDto {
-        return executeRateLimited(RATE_LIMIT_KEY_SEASON_EVENTS) {
-            executeWithRetry {
+        return executeRateLimitedWithRetry(
+            RATE_LIMIT_KEY_SEASON_EVENTS,
+            RATE_LIMIT_KEY_SEASON_EVENTS,
+        ) {
                 httpClient.get {
                     url { encodedPath = "v1/seasons/events" }
                     parameter("unique_tournament_id", uniqueTournamentId)

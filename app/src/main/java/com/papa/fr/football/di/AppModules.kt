@@ -10,6 +10,7 @@ import com.papa.fr.football.data.local.database.PapaFootballDatabase
 import com.papa.fr.football.data.remote.ApiRateLimiter
 import com.papa.fr.football.data.remote.LiveEventsApiService
 import com.papa.fr.football.data.remote.RateLimitRule
+import com.papa.fr.football.data.remote.RetryingCallExecutor
 import com.papa.fr.football.data.remote.SeasonApiService
 import com.papa.fr.football.data.remote.TeamApiService
 import com.papa.fr.football.data.repository.MatchRepositoryImpl
@@ -90,10 +91,6 @@ val dataModule = module {
             ),
         )
     }
-    single { SeasonApiService(get(), get(named("seasonApiRateLimiter"))) }
-    single { TeamApiService(get()) }
-    single { LiveEventsApiService(get()) }
-    single { TeamLogoProvider(get()) }
     single {
         Room.databaseBuilder(
             androidContext(),
@@ -104,6 +101,12 @@ val dataModule = module {
     single { get<PapaFootballDatabase>().seasonDao() }
     single { get<PapaFootballDatabase>().matchDao() }
     single { get<PapaFootballDatabase>().liveMatchDao() }
+    single { get<PapaFootballDatabase>().rateLimitedRequestDao() }
+    single { RetryingCallExecutor(get()) }
+    single { SeasonApiService(get(), get(named("seasonApiRateLimiter")), get()) }
+    single { TeamApiService(get(), get()) }
+    single { LiveEventsApiService(get(), get()) }
+    single { TeamLogoProvider(get()) }
     single<SeasonRepository> { SeasonRepositoryImpl(get(), get()) }
     single<MatchRepository> { MatchRepositoryImpl(get(), get(), get(), get(), get()) }
     single { DataBootstrapper(get(), get(), get()) }
