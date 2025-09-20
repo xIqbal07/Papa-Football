@@ -137,6 +137,6 @@ val domainModule = module {
 }
 
 val presentationModule = module {
-    viewModel { ScheduleViewModel(get(), get(), get(), get(), get()) }
+    viewModel { ScheduleViewModel(get(), get(), get(), get(), get(), get()) }
     viewModel { SignInViewModel(get(), get(), get()) }
 }

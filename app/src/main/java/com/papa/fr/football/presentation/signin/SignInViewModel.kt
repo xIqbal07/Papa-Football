@@ -22,12 +22,17 @@ class SignInViewModel(
     private val userPreferencesRepository: UserPreferencesRepository,
 ) : ViewModel() {
 
-    private val _uiState = MutableStateFlow(
-        SignInUiState(
-            leagues = leagueCatalog.leagues.map { it.toUiModel() },
-        )
+    private val leagues = leagueCatalog.leagues.map { it.toUiModel() }
+    private var currentState = SignInViewState.Content(
+        leagues = leagues,
+        teamSelectionState = TeamSelectionState.Choosing(
+            favoriteTeams = emptyList(),
+            selectedLeagueId = null,
+            availableTeams = emptyList(),
+        ),
     )
-    val uiState: StateFlow<SignInUiState> = _uiState
+    private val _uiState = MutableStateFlow<SignInViewState>(currentState)
+    val uiState: StateFlow<SignInViewState> = _uiState
 
     private val _events = MutableSharedFlow<SignInEvent>()
     val events: SharedFlow<SignInEvent> = _events
@@ -37,6 +42,10 @@ class SignInViewModel(
     private var favoriteTeamDetails: MutableMap<Int, FavoriteTeamUiModel> = mutableMapOf()
     private var availableTeamsById: Map<Int, TeamSelectionUiModel> = emptyMap()
     private var teamCollectionJob: Job? = null
+    private var currentSelectedLeagueId: Int? = null
+    private var currentAvailableTeams: List<TeamSelectionUiModel> = emptyList()
+    private var isEditingTeams: Boolean = true
+    private var hasInitializedFromPreferences = false
 
     init {
         viewModelScope.launch {
@@ -49,19 +58,44 @@ class SignInViewModel(
                 favoriteTeamDetails = currentFavorites
                     .associateBy({ it.id }) { it.toFavoriteUiModel() }
                     .toMutableMap()
-                _uiState.value = _uiState.value.copy(
-                    selectedLeagueId = preferences.selectedLeagueId,
-                    favoriteTeams = favoriteTeamDetails.values.sortedBy { it.name },
-                    isSignedIn = preferences.isSignedIn,
-                )
+                currentSelectedLeagueId = preferences.selectedLeagueId
+
+                if (!hasInitializedFromPreferences) {
+                    isEditingTeams = currentFavorites.isEmpty()
+                    hasInitializedFromPreferences = true
+                } else if (currentFavorites.isEmpty()) {
+                    isEditingTeams = true
+                }
+
+                setSelectionState(resolveSelectionState(currentFavorites()))
             }
         }
     }
 
+    fun onAddTeamClicked() {
+        val favorites = currentFavorites()
+        if (favorites.isEmpty()) {
+            isEditingTeams = true
+        } else {
+            isEditingTeams = !isEditingTeams
+        }
+        setSelectionState(resolveSelectionState(favorites))
+    }
+
     fun onLeagueSelected(leagueId: Int) {
         pendingTeamIds = selectedTeamIds.toMutableSet()
+        currentSelectedLeagueId = leagueId
+        isEditingTeams = true
+        currentAvailableTeams = emptyList()
+        availableTeamsById = emptyMap()
+        setSelectionState(
+            TeamSelectionState.Choosing(
+                favoriteTeams = currentFavorites(),
+                selectedLeagueId = leagueId,
+                availableTeams = emptyList(),
+            )
+        )
         startObservingTeams(leagueId)
-        _uiState.value = _uiState.value.copy(selectedLeagueId = leagueId)
     }
 
     fun onTeamSelectionChanged(teamId: Int, isSelected: Boolean) {
@@ -70,15 +104,22 @@ class SignInViewModel(
         } else {
             pendingTeamIds.remove(teamId)
         }
-        val updatedTeams = _uiState.value.availableTeams.map { team ->
+        val updatedTeams = currentAvailableTeams.map { team ->
             if (team.id == teamId) {
                 team.copy(isSelected = isSelected)
             } else {
                 team
             }
         }
+        currentAvailableTeams = updatedTeams
         availableTeamsById = updatedTeams.associateBy { it.id }
-        _uiState.value = _uiState.value.copy(availableTeams = updatedTeams)
+        setSelectionState(
+            TeamSelectionState.Choosing(
+                favoriteTeams = currentFavorites(),
+                selectedLeagueId = currentSelectedLeagueId,
+                availableTeams = updatedTeams,
+            )
+        )
     }
 
     fun confirmTeamSelection() {
@@ -92,23 +133,20 @@ class SignInViewModel(
             }
         updatedFavorites.keys.retainAll(selectedTeamIds)
         favoriteTeamDetails = updatedFavorites
-        _uiState.value = _uiState.value.copy(
-            favoriteTeams = favoriteTeamDetails.values.sortedBy { it.name },
-        )
-        viewModelScope.launch {
-            _events.emit(SignInEvent.TeamsConfirmed)
+        val favorites = currentFavorites()
+        if (favorites.isNotEmpty()) {
+            isEditingTeams = false
         }
+        setSelectionState(resolveSelectionState(favorites))
     }
 
     fun onSignInClicked() {
-        val state = _uiState.value
-        val favorites = favoriteTeamDetails.values
-            .sortedBy { it.name }
+        val favorites = currentFavorites()
             .map { it.toDomain() }
         viewModelScope.launch {
             userPreferencesRepository.updatePreferences(
                 isSignedIn = true,
-                selectedLeagueId = state.selectedLeagueId,
+                selectedLeagueId = currentSelectedLeagueId,
                 favoriteTeams = favorites,
             )
             _events.emit(SignInEvent.NavigateToSchedule)
@@ -120,16 +158,57 @@ class SignInViewModel(
         teamCollectionJob = viewModelScope.launch {
             teamRepository.getTeamsForLeague(leagueId)
                 .catch {
-                    _uiState.value = _uiState.value.copy(availableTeams = emptyList())
+                    currentAvailableTeams = emptyList()
+                    availableTeamsById = emptyMap()
+                    setSelectionState(
+                        TeamSelectionState.Choosing(
+                            favoriteTeams = currentFavorites(),
+                            selectedLeagueId = leagueId,
+                            availableTeams = emptyList(),
+                        )
+                    )
                 }
                 .collect { teams ->
                     val availableTeams = teams.map { team ->
                         team.toSelectionUiModel(pendingTeamIds.contains(team.id))
                     }
+                    currentAvailableTeams = availableTeams
                     availableTeamsById = availableTeams.associateBy { it.id }
-                    _uiState.value = _uiState.value.copy(availableTeams = availableTeams)
+                    setSelectionState(
+                        TeamSelectionState.Choosing(
+                            favoriteTeams = currentFavorites(),
+                            selectedLeagueId = leagueId,
+                            availableTeams = availableTeams,
+                        )
+                    )
                 }
         }
+    }
+
+    private fun setSelectionState(selectionState: TeamSelectionState) {
+        updateState { it.copy(teamSelectionState = selectionState) }
+    }
+
+    private fun resolveSelectionState(favorites: List<FavoriteTeamUiModel>): TeamSelectionState {
+        return if (isEditingTeams || favorites.isEmpty()) {
+            TeamSelectionState.Choosing(
+                favoriteTeams = favorites,
+                selectedLeagueId = currentSelectedLeagueId,
+                availableTeams = currentAvailableTeams,
+            )
+        } else {
+            TeamSelectionState.Favorites(favorites)
+        }
+    }
+
+    private fun updateState(transform: (SignInViewState.Content) -> SignInViewState.Content) {
+        val updated = transform(currentState)
+        currentState = updated
+        _uiState.value = updated
+    }
+
+    private fun currentFavorites(): List<FavoriteTeamUiModel> {
+        return favoriteTeamDetails.values.sortedBy { it.name }
     }
 
     private fun LeagueDescriptor.toUiModel(): LeagueUiModel {
@@ -177,37 +256,3 @@ class SignInViewModel(
         )
     }
 }
-
-sealed interface SignInEvent {
-    data object TeamsConfirmed : SignInEvent
-    data object NavigateToSchedule : SignInEvent
-}
-
-data class SignInUiState(
-    val leagues: List<LeagueUiModel> = emptyList(),
-    val selectedLeagueId: Int? = null,
-    val availableTeams: List<TeamSelectionUiModel> = emptyList(),
-    val favoriteTeams: List<FavoriteTeamUiModel> = emptyList(),
-    val isSignedIn: Boolean = false,
-)
-
-data class LeagueUiModel(
-    val id: Int,
-    val name: String,
-    val iconRes: Int?,
-)
-
-data class TeamSelectionUiModel(
-    val id: Int,
-    val leagueId: Int,
-    val name: String,
-    val logoBase64: String?,
-    val isSelected: Boolean,
-)
-
-data class FavoriteTeamUiModel(
-    val id: Int,
-    val leagueId: Int,
-    val name: String,
-    val logoBase64: String?,
-)

@@ -28,12 +28,12 @@ class ItemListTeam @JvmOverloads constructor(
                 val isEdit = getBoolean(R.styleable.ItemListTeam_isEdit, false)
                 binding.tvTeamName.text = getString(R.styleable.ItemListTeam_title)
                 binding.ivLogo.setImageDrawable(getDrawable(R.styleable.ItemListTeam_logo))
-                binding.ivIndicatorActive.isVisible =
-                    getBoolean(R.styleable.ItemListTeam_active, false)
+                binding.ivFavoriteTeam.isVisible =
+                    getBoolean(R.styleable.ItemListTeam_isFavoriteTeam, false)
                 binding.groupEdit.isVisible = isEdit
                 if (isEdit) {
                     binding.ivEndIcon.setImageDrawable(getDrawable(R.styleable.ItemListTeam_endIconLogo))
-                    binding.ivIndicatorActive.isVisible = false
+                    binding.ivFavoriteTeam.isVisible = false
                 }
             }
         }
@@ -67,7 +67,7 @@ class ItemListTeam @JvmOverloads constructor(
         }
     }
 
-    fun setIndicatorActive(isActive: Boolean) {
-        binding.ivIndicatorActive.isVisible = isActive
+    fun setFavoriteTeamIndicator(isFavorite: Boolean) {
+        binding.ivFavoriteTeam.isVisible = isFavorite
     }
 }

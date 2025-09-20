@@ -10,6 +10,7 @@ import com.papa.fr.football.common.schedule.ScheduleConfig
 import com.papa.fr.football.domain.model.LiveMatch
 import com.papa.fr.football.domain.model.Match
 import com.papa.fr.football.domain.model.Season
+import com.papa.fr.football.domain.repository.UserPreferencesRepository
 import com.papa.fr.football.domain.usecase.GetLiveMatchesUseCase
 import com.papa.fr.football.domain.usecase.GetRecentMatchesUseCase
 import com.papa.fr.football.domain.usecase.GetSeasonsUseCase
@@ -43,6 +44,7 @@ class ScheduleViewModel(
     private val getUpcomingMatchesUseCase: GetUpcomingMatchesUseCase,
     private val getRecentMatchesUseCase: GetRecentMatchesUseCase,
     private val getLiveMatchesUseCase: GetLiveMatchesUseCase,
+    private val userPreferencesRepository: UserPreferencesRepository,
     leagueCatalog: LeagueCatalog,
 ) : ViewModel() {
 
@@ -61,6 +63,16 @@ class ScheduleViewModel(
     val leagueItems: StateFlow<List<LeagueItem>> = _leagueItems.asStateFlow()
 
     private val loadingPastMatches = mutableSetOf<Pair<Int, Int>>()
+    private var favoriteTeamIds: Set<Int> = emptySet()
+
+    init {
+        viewModelScope.launch {
+            userPreferencesRepository.preferencesFlow.collect { preferences ->
+                favoriteTeamIds = preferences.favoriteTeams.map { it.id }.toSet()
+                updateFavoriteTeamIndicators()
+            }
+        }
+    }
 
     fun defaultLeagueLabel(): String = _leagueItems.value.firstOrNull()?.name.orEmpty()
 
@@ -778,6 +790,8 @@ class ScheduleViewModel(
             isToday = isToday,
             homeLogoBase64 = homeTeam.logoBase64,
             awayLogoBase64 = awayTeam.logoBase64,
+            isHomeTeamFavorite = favoriteTeamIds.contains(homeTeam.id),
+            isAwayTeamFavorite = favoriteTeamIds.contains(awayTeam.id),
             odds = null,
         )
     }
@@ -790,12 +804,16 @@ class ScheduleViewModel(
 
         return MatchUiModel.Past(
             id = id,
+            homeTeamId = homeTeam.id,
             homeTeamName = homeTeam.name,
+            awayTeamId = awayTeam.id,
             awayTeamName = awayTeam.name,
             startDateLabel = dateLabel,
             scoreLabel = scoreLabel,
             homeLogoBase64 = homeTeam.logoBase64,
             awayLogoBase64 = awayTeam.logoBase64,
+            isHomeTeamFavorite = favoriteTeamIds.contains(homeTeam.id),
+            isAwayTeamFavorite = favoriteTeamIds.contains(awayTeam.id),
         )
     }
 
@@ -811,7 +829,40 @@ class ScheduleViewModel(
             homeLogoBase64 = homeTeam.logoBase64,
             awayLogoBase64 = awayTeam.logoBase64,
             statusLabel = status,
+            isHomeTeamFavorite = favoriteTeamIds.contains(homeTeam.id),
+            isAwayTeamFavorite = favoriteTeamIds.contains(awayTeam.id),
         )
+    }
+
+    private fun updateFavoriteTeamIndicators() {
+        val favorites = favoriteTeamIds
+        _uiState.update { state ->
+            state.copy(
+                futureMatches = state.futureMatches.map {
+                    it.withFavoriteTeams(favorites) as MatchUiModel.Future
+                },
+                matchesByLeagueSeason = state.matchesByLeagueSeason.mapValues { leagueEntry ->
+                    leagueEntry.value.mapValues { seasonEntry ->
+                        seasonEntry.value.map {
+                            it.withFavoriteTeams(favorites) as MatchUiModel.Future
+                        }
+                    }
+                },
+                pastMatches = state.pastMatches.map {
+                    it.withFavoriteTeams(favorites) as MatchUiModel.Past
+                },
+                pastMatchesByLeagueSeason = state.pastMatchesByLeagueSeason.mapValues { leagueEntry ->
+                    leagueEntry.value.mapValues { seasonEntry ->
+                        seasonEntry.value.map {
+                            it.withFavoriteTeams(favorites) as MatchUiModel.Past
+                        }
+                    }
+                },
+                liveMatches = state.liveMatches.map {
+                    it.withFavoriteTeams(favorites) as MatchUiModel.Live
+                },
+            )
+        }
     }
 
     private fun formatScore(homeScore: Int?, awayScore: Int?): String {

@@ -31,7 +31,6 @@ class SignInFragment : Fragment() {
         onSelectLeague(league.id)
     }
     private val favoriteTeamsAdapter = FavoriteTeamsAdapter()
-    private var isEditingTeams: Boolean = false
 
     private fun parentActivity() = (requireActivity() as? MainActivity)
 
@@ -59,16 +58,7 @@ class SignInFragment : Fragment() {
         groupProfile.isVisible = false
         btnEdit.isVisible = false
 
-        btnAddTeam.setOnClickListener {
-            isEditingTeams = !isEditingTeams
-            if (isEditingTeams) {
-                rvChooseLeague.isVisible = true
-                groupTeamFavorite.isVisible = false
-            } else {
-                rvChooseLeague.isVisible = false
-                groupTeamFavorite.isVisible = signInViewModel.uiState.value.favoriteTeams.isNotEmpty()
-            }
-        }
+        btnAddTeam.setOnClickListener { signInViewModel.onAddTeamClicked() }
         btnSave.apply {
             isVisible = true
             text = getString(R.string.sign_in)
@@ -96,35 +86,42 @@ class SignInFragment : Fragment() {
         viewLifecycleOwner.lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
                 signInViewModel.events.collect { event ->
-                    when (event) {
-                        SignInEvent.TeamsConfirmed -> {
-                            isEditingTeams = false
-                            binding.rvChooseLeague.isVisible = false
-                            binding.groupTeamFavorite.isVisible = true
-                        }
-
-                        SignInEvent.NavigateToSchedule -> {
-                            isEditingTeams = false
-                            parentActivity()?.onUserSignedIn()
-                        }
+                    if (event is SignInEvent.NavigateToSchedule) {
+                        parentActivity()?.onUserSignedIn()
                     }
                 }
             }
         }
     }
 
-    private fun renderState(state: SignInUiState) = with(binding) {
+    private fun renderState(state: SignInViewState) {
+        when (state) {
+            is SignInViewState.Content -> renderContentState(state)
+        }
+    }
+
+    private fun renderContentState(state: SignInViewState.Content) = with(binding) {
         leagueAdapter.submitList(state.leagues)
-        favoriteTeamsAdapter.submitList(state.favoriteTeams)
-        val hasFavorites = state.favoriteTeams.isNotEmpty()
-        groupTeamFavorite.isVisible = hasFavorites && !isEditingTeams
-        rvChooseLeague.isVisible = isEditingTeams || !hasFavorites
-        btnSave.isEnabled = state.favoriteTeams.isNotEmpty()
+        favoriteTeamsAdapter.submitList(state.teamSelectionState.favoriteTeams)
+
+        when (val selectionState = state.teamSelectionState) {
+            is TeamSelectionState.Choosing -> {
+                groupTeamFavorite.isVisible = false
+                rvChooseLeague.isVisible = true
+            }
+
+            is TeamSelectionState.Favorites -> {
+                val hasFavorites = selectionState.favoriteTeams.isNotEmpty()
+                groupTeamFavorite.isVisible = hasFavorites
+                rvChooseLeague.isVisible = !hasFavorites
+            }
+        }
+
+        btnSave.isEnabled = state.canSignIn
     }
 
     override fun onDestroyView() {
         super.onDestroyView()
-        isEditingTeams = false
         _binding = null
     }
 

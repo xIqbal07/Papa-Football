@@ -30,7 +30,7 @@ class FavoriteTeamsAdapter :
         fun bind(item: FavoriteTeamUiModel) {
             binding.tvTeamName.text = item.name
             binding.ivLogo.setImageBase64(item.logoBase64)
-            binding.ivIndicatorActive.isVisible = true
+            binding.ivFavoriteTeam.isVisible = true
             binding.groupEdit.isVisible = false
         }
     }
