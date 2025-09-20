@@ -10,9 +10,11 @@ import io.ktor.http.encodedPath
 
 class TeamApiService(private val httpClient: HttpClient) {
     suspend fun getTeamLogo(teamId: Int): TeamLogoRaw {
-        val response = httpClient.get {
-            url { encodedPath = "v1/teams/logo" }
-            parameter("team_id", teamId)
+        val response = executeWithRetry {
+            httpClient.get {
+                url { encodedPath = "v1/teams/logo" }
+                parameter("team_id", teamId)
+            }
         }
 
         return TeamLogoRaw(

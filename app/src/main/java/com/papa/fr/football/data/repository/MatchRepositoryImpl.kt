@@ -2,6 +2,7 @@ package com.papa.fr.football.data.repository
 
 import com.papa.fr.football.data.local.dao.LiveMatchDao
 import com.papa.fr.football.data.local.dao.MatchDao
+import com.papa.fr.football.data.local.entity.MatchRefreshEntity
 import com.papa.fr.football.data.local.entity.MatchTypeEntity
 import com.papa.fr.football.data.local.mapper.toDomain
 import com.papa.fr.football.data.local.mapper.toEntity
@@ -85,12 +86,21 @@ class MatchRepositoryImpl(
             .map { it.toDomain() }
 
         if (!forceRefresh) {
-            val hasRecentRefresh = matchDao.getRefreshTimestamp(
+            val refreshTimestamp = matchDao.getRefreshTimestamp(
                 uniqueTournamentId,
                 seasonId,
                 MatchTypeEntity.PAST,
-            ) != null
-            if (hasRecentRefresh) {
+            )
+            if (refreshTimestamp != null) {
+                return cached
+            }
+
+            if (cached.isNotEmpty()) {
+                recordMatchesRefreshed(
+                    leagueId = uniqueTournamentId,
+                    seasonId = seasonId,
+                    type = MatchTypeEntity.PAST,
+                )
                 return cached
             }
         }
@@ -375,6 +385,21 @@ class MatchRepositoryImpl(
         jobs.joinAll()
     }
 
+    private suspend fun recordMatchesRefreshed(
+        leagueId: Int,
+        seasonId: Int,
+        type: MatchTypeEntity,
+    ) {
+        matchDao.upsertRefreshTimestamp(
+            MatchRefreshEntity(
+                leagueId = leagueId,
+                seasonId = seasonId,
+                type = type,
+                refreshedAt = System.currentTimeMillis(),
+            )
+        )
+    }
+
     private companion object {
         private const val TOP_TEAM_LOGO_PREFETCH_COUNT = 12
         private const val MAX_TEAM_LOGO_REQUESTS_PER_REFRESH = 28
@@ -479,11 +504,25 @@ class MatchRepositoryImpl(
         if (forceRefresh) {
             return true
         }
-        return matchDao.getRefreshTimestamp(
+        val refreshTimestamp = matchDao.getRefreshTimestamp(
             uniqueTournamentId,
             seasonId,
             MatchTypeEntity.UPCOMING,
-        ) == null
+        )
+        if (refreshTimestamp != null) {
+            return false
+        }
+
+        if (matchDao.hasMatches(uniqueTournamentId, seasonId, MatchTypeEntity.UPCOMING)) {
+            recordMatchesRefreshed(
+                leagueId = uniqueTournamentId,
+                seasonId = seasonId,
+                type = MatchTypeEntity.UPCOMING,
+            )
+            return false
+        }
+
+        return true
     }
 
     private data class LiveLogoPrefetchState(

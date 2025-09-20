@@ -10,12 +10,14 @@ import io.ktor.http.encodedPath
 
 class SeasonApiService(private val httpClient: HttpClient) {
     suspend fun getUniqueTournamentSeasons(uniqueTournamentId: Int): UniqueTournamentSeasonsResponseDto {
-        return httpClient.get {
-            url {
-                encodedPath = "v1/unique-tournaments/seasons"
-            }
-            parameter("unique_tournament_id", uniqueTournamentId)
-        }.body()
+        return executeWithRetry {
+            httpClient.get {
+                url {
+                    encodedPath = "v1/unique-tournaments/seasons"
+                }
+                parameter("unique_tournament_id", uniqueTournamentId)
+            }.body()
+        }
     }
 
     suspend fun getSeasonEvents(
@@ -24,12 +26,14 @@ class SeasonApiService(private val httpClient: HttpClient) {
         page: Int = 1,
         courseEvents: String = "next",
     ): SeasonEventsResponseDto {
-        return httpClient.get {
-            url { encodedPath = "v1/seasons/events" }
-            parameter("unique_tournament_id", uniqueTournamentId)
-            parameter("seasons_id", seasonId)
-            parameter("page", page)
-            parameter("course_events", courseEvents)
-        }.body()
+        return executeWithRetry {
+            httpClient.get {
+                url { encodedPath = "v1/seasons/events" }
+                parameter("unique_tournament_id", uniqueTournamentId)
+                parameter("seasons_id", seasonId)
+                parameter("page", page)
+                parameter("course_events", courseEvents)
+            }.body()
+        }
     }
 }

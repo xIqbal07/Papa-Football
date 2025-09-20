@@ -9,9 +9,11 @@ import io.ktor.http.encodedPath
 
 class LiveEventsApiService(private val httpClient: HttpClient) {
     suspend fun getLiveSchedule(sportId: Int): LiveEventsResponseDto {
-        return httpClient.get {
-            url { encodedPath = "v1/events/schedule/live" }
-            parameter("sport_id", sportId)
-        }.body()
+        return executeWithRetry {
+            httpClient.get {
+                url { encodedPath = "v1/events/schedule/live" }
+                parameter("sport_id", sportId)
+            }.body()
+        }
     }
 }

@@ -51,6 +51,21 @@ interface MatchDao {
 
     @Query(
         """
+            SELECT EXISTS(
+                SELECT 1 FROM matches
+                WHERE league_id = :leagueId AND season_id = :seasonId AND type = :type
+                LIMIT 1
+            )
+        """
+    )
+    suspend fun hasMatches(
+        leagueId: Int,
+        seasonId: Int,
+        type: MatchTypeEntity,
+    ): Boolean
+
+    @Query(
+        """
             SELECT refreshed_at FROM match_refresh
             WHERE league_id = :leagueId AND season_id = :seasonId AND type = :type
         """
