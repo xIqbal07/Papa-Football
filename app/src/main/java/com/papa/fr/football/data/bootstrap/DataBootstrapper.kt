@@ -32,6 +32,7 @@ class DataBootstrapper(
     }
 
     private suspend fun warmCaches(forceRefresh: Boolean) {
+        val prioritizedSeasons = mutableListOf<LeagueSeason>()
         val futureSeasonQueues = mutableListOf<LeagueSeasonQueue>()
         val pastSeasonQueues = mutableListOf<LeagueSeasonQueue>()
 
@@ -43,23 +44,7 @@ class DataBootstrapper(
             val prioritizedSeason = seasons.firstOrNull()
 
             if (prioritizedSeason != null) {
-                runCatching {
-                    matchRepository.warmUpcomingMatches(
-                        uniqueTournamentId = league.id,
-                        seasonId = prioritizedSeason.id,
-                        forceRefresh = forceRefresh,
-                        prefetchLogos = true,
-                    )
-                }
-
-                runCatching {
-                    matchRepository.warmRecentMatches(
-                        uniqueTournamentId = league.id,
-                        seasonId = prioritizedSeason.id,
-                        forceRefresh = forceRefresh,
-                        prefetchLogos = true,
-                    )
-                }
+                prioritizedSeasons += LeagueSeason(league.id, prioritizedSeason.id)
             }
 
             val remainingSeasons = if (prioritizedSeason != null) {
@@ -81,6 +66,28 @@ class DataBootstrapper(
                 pastSeasonQueues += LeagueSeasonQueue(
                     leagueId = league.id,
                     seasonIds = ArrayDeque(pastSeasons.map { it.id }),
+                )
+            }
+        }
+
+        prioritizedSeasons.forEach { prioritized ->
+            runCatching {
+                matchRepository.warmUpcomingMatches(
+                    uniqueTournamentId = prioritized.leagueId,
+                    seasonId = prioritized.seasonId,
+                    forceRefresh = forceRefresh,
+                    prefetchLogos = true,
+                )
+            }
+        }
+
+        prioritizedSeasons.forEach { prioritized ->
+            runCatching {
+                matchRepository.warmRecentMatches(
+                    uniqueTournamentId = prioritized.leagueId,
+                    seasonId = prioritized.seasonId,
+                    forceRefresh = forceRefresh,
+                    prefetchLogos = true,
                 )
             }
         }
@@ -138,6 +145,11 @@ class DataBootstrapper(
     private data class LeagueSeasonQueue(
         val leagueId: Int,
         val seasonIds: ArrayDeque<Int>,
+    )
+
+    private data class LeagueSeason(
+        val leagueId: Int,
+        val seasonId: Int,
     )
 
     private fun <T> ArrayDeque<T>.removeFirstOrNull(): T? = if (isEmpty()) null else removeFirst()
